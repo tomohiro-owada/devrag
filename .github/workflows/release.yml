@@ -66,12 +66,16 @@ jobs:
 
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
-        shell: msys2 {0}
+        shell: bash
         env:
           CGO_ENABLED: 1
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
+          export PATH="/c/msys64/mingw64/bin:$PATH"
+          export PKG_CONFIG_PATH="/c/msys64/mingw64/lib/pkgconfig"
+          export CGO_CFLAGS="-I/c/msys64/mingw64/include"
+          export CGO_LDFLAGS="-L/c/msys64/mingw64/lib"
           go build -ldflags="-s -w" -o ${{ matrix.binary_name }} cmd/main.go
 
       - name: Build (Unix)
