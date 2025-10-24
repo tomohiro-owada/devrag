@@ -74,7 +74,20 @@ cp your-notes.md documents/
 {
   "mcpServers": {
     "markdown-vector": {
+      "type": "stdio",
       "command": "/absolute/path/to/markdown-vector-mcp"
+    }
+  }
+}
+```
+
+Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+```json
+{
+  "mcpServers": {
+    "markdown-vector": {
+      "type": "stdio",
+      "command": "C:\\path\\to\\markdown-vector-mcp.exe"
     }
   }
 }
