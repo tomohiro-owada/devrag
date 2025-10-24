@@ -16,8 +16,29 @@
 
 ### Download Binary
 
-[Releases](https://github.com/towada/markdown-vector-mcp/releases)から
-お使いのOSに合ったバイナリをダウンロード。
+[Releases](https://github.com/towada/markdown-vector-mcp/releases)ページから
+お使いのOSに合ったバイナリをダウンロードしてください：
+
+| Platform | Architecture | File |
+|----------|-------------|------|
+| macOS | Apple Silicon (M1/M2/M3) | `markdown-vector-mcp-darwin-arm64.tar.gz` |
+| macOS | Intel | `markdown-vector-mcp-darwin-amd64.tar.gz` |
+| Linux | x86_64 | `markdown-vector-mcp-linux-amd64.tar.gz` |
+| Linux | ARM64 | `markdown-vector-mcp-linux-arm64.tar.gz` |
+| Windows | x86_64 | `markdown-vector-mcp-windows-amd64.zip` |
+
+ダウンロード後、解凍してバイナリを適切な場所に配置してください。
+
+**macOS/Linuxの場合:**
+```bash
+tar -xzf markdown-vector-mcp-*.tar.gz
+chmod +x markdown-vector-mcp-*
+sudo mv markdown-vector-mcp-* /usr/local/bin/markdown-vector-mcp
+```
+
+**Windowsの場合:**
+- zipファイルを解凍
+- 任意のフォルダに配置（例: `C:\Program Files\markdown-vector-mcp\`）
 
 ### Build from Source
 
@@ -192,7 +213,30 @@ go test . -v -run TestEndToEnd
 
 # または直接ビルド
 go build -o markdown-vector-mcp cmd/main.go
+
+# リリース用ビルド（クロスプラットフォーム）
+./scripts/build-release.sh
 ```
+
+### Creating a Release
+
+リリースを作成するには、バージョンタグをプッシュします：
+
+```bash
+# バージョンタグを作成（例: v1.0.1）
+git tag v1.0.1
+
+# タグをプッシュ
+git push origin v1.0.1
+```
+
+GitHub Actionsが自動的に：
+1. 全プラットフォーム向けにビルド
+2. GitHub Releasesページを作成
+3. バイナリをアップロード
+4. チェックサムファイルを生成
+
+リリースが完成したら[Releases](https://github.com/towada/markdown-vector-mcp/releases)ページで確認できます。
 
 ### Project Structure
 
