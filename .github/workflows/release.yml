@@ -19,16 +19,16 @@ jobs:
           - os: macos-latest
             goos: darwin
             goarch: amd64
-            binary_name: markdown-vector-mcp-darwin-amd64
+            binary_name: markdown-vector-mcp-macos-intel
           - os: macos-latest
             goos: darwin
             goarch: arm64
-            binary_name: markdown-vector-mcp-darwin-arm64
+            binary_name: markdown-vector-mcp-macos-apple-silicon
           # Linux builds
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
-            binary_name: markdown-vector-mcp-linux-amd64
+            binary_name: markdown-vector-mcp-linux-x64
           - os: ubuntu-latest
             goos: linux
             goarch: arm64
@@ -37,7 +37,7 @@ jobs:
           - os: windows-latest
             goos: windows
             goarch: amd64
-            binary_name: markdown-vector-mcp-windows-amd64.exe
+            binary_name: markdown-vector-mcp-windows-x64.exe
 
     steps:
       - name: Checkout code

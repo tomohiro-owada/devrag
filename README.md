@@ -19,13 +19,13 @@
 [Releases](https://github.com/towada/markdown-vector-mcp/releases)ページから
 お使いのOSに合ったバイナリをダウンロードしてください：
 
-| Platform | Architecture | File |
+| Platform | Description | File |
 |----------|-------------|------|
-| macOS | Apple Silicon (M1/M2/M3) | `markdown-vector-mcp-darwin-arm64.tar.gz` |
-| macOS | Intel | `markdown-vector-mcp-darwin-amd64.tar.gz` |
-| Linux | x86_64 | `markdown-vector-mcp-linux-amd64.tar.gz` |
+| macOS | Apple Silicon (M1/M2/M3) | `markdown-vector-mcp-macos-apple-silicon.tar.gz` |
+| macOS | Intel | `markdown-vector-mcp-macos-intel.tar.gz` |
+| Linux | x86_64 / x64 | `markdown-vector-mcp-linux-x64.tar.gz` |
 | Linux | ARM64 | `markdown-vector-mcp-linux-arm64.tar.gz` |
-| Windows | x86_64 | `markdown-vector-mcp-windows-amd64.zip` |
+| Windows | x64 | `markdown-vector-mcp-windows-x64.zip` |
 
 ダウンロード後、解凍してバイナリを適切な場所に配置してください。
 
