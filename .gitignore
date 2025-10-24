@@ -1,0 +1,34 @@
+# Binaries
+markdown-vector-mcp
+*.exe
+
+# Build output
+bin/
+dist/
+
+# Runtime files
+config.json
+vectors.db
+documents/
+
+# Model files (download separately)
+models/model.onnx
+models/tokenizer.json
+
+# Go
+*.so
+*.dylib
+
+# Test
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

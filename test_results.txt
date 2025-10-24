@@ -1,0 +1,115 @@
+
+=== Testing: test_data/test_short.md ===
+Total chunks: 1
+
+--- Chunk 0 (Position: 0, Bytes: 214, Runes: 190) ---
+# Short Document
+
+This is a short test document with less than 500 characters.
+It should produce only one chunk.
+
+## Features
+
+- Simple markdown
+- Japanese text: これは日本語のテストです
+- Mixed content
+
+
+=== Testing: test_data/test_long.md ===
+Total chunks: 8
+
+--- Chunk 0 (Position: 0, Bytes: 204, Runes: 204) ---
+# Long Document for Chunking Test
+
+This is a long document designed to test the chunking functionality. It contains multiple paragraphs and sections to ensure proper splitting.
+
+## Section 1: Introduc...
+
+--- Chunk 1 (Position: 1, Bytes: 445, Runes: 445) ---
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a...
+
+--- Chunk 2 (Position: 2, Bytes: 587, Runes: 379) ---
+これは日本語の段落です。マークダウンベクトル検索システムは、日本語と英語の混在したテキストを適切に処理する必要があります。この段落は、日本語の文章が正しくチャンク化されることを確認するためのテストケースです。
+
+## Section 2: Technical Details
+
+The system implements vector search using SQLite with vec0 ex...
+
+--- Chunk 3 (Position: 3, Bytes: 464, Runes: 464) ---
+The default chunk size is 500 characters. This ensures that each chunk is meaningful while keeping the vector embeddings focused. The chunker respects paragraph boundaries and tries to split at senten...
+
+--- Chunk 4 (Position: 4, Bytes: 375, Runes: 375) ---
+## Section 3: Performance Considerations
+
+Performance is critical for a good user experience. The system is designed to:
+
+1. Index documents quickly (target: >100 chunks/sec)
+2. Respond to search quer...
+
+--- Chunk 5 (Position: 5, Bytes: 425, Runes: 425) ---
+- Batch processing of embeddings
+- Efficient SQLite queries with proper indexing
+- Memory-mapped database files
+- ONNX Runtime with hardware acceleration (Metal on macOS)
+
+## Section 4: Code Example
+
+...
+
+--- Chunk 6 (Position: 6, Bytes: 437, Runes: 437) ---
+This code demonstrates the basic usage of the ParseMarkdown function. It reads a markdown file and splits it into chunks of approximately 500 characters each.
+
+## Section 5: Conclusion
+
+This document ...
+
+--- Chunk 7 (Position: 7, Bytes: 287, Runes: 109) ---
+日本語での結論: このシステムは、マークダウンファイルを効率的にベクトル検索できるようにします。チャンク分割アルゴリズムは、段落の境界を尊重し、意味のある単位でテキストを分割します。
+
+End of document.
+
+
+=== Testing: test_data/test_mixed.md ===
+Total chunks: 5
+
+--- Chunk 0 (Position: 0, Bytes: 330, Runes: 330) ---
+# Mixed Content Document
+
+## Code Block Test
+
+The following code block should not be split:
+
+```python
+def calculate_embedding(text):
+    # This is a long code block that should remain together
+    # ...
+
+--- Chunk 1 (Position: 1, Bytes: 415, Runes: 265) ---
+# More lines to make it longer
+    for i in range(100):
+        print(f"Processing item {i}")
+        result = process(i)
+        if result:
+            save(result)
+```
+
+## Japanese Text
+
+日本語のテキストです。...
+
+--- Chunk 2 (Position: 2, Bytes: 1361, Runes: 479) ---
+長い日本語の段落をテストします。この段落は500文字を超えるように意図的に長く書かれています。マークダウンパーサーは、この長い段落を適切な境界で分割する必要があります。日本語の文の境界は「。」で判断されます。英語と違って、日本語には明確な単語の区切りがないため、文の境界での分割が重要です。この実装では、句読点を検出して適切に分割します。さらに、コードブロックが含まれている場合は、それを分割しないよ...
+
+--- Chunk 3 (Position: 3, Bytes: 219, Runes: 79) ---
+Goのstringsパッケージには、文字列を操作するための便利な関数が多数用意されています。段落の分割アルゴリズムは、これらの関数を活用して実装されています。
+
+--- Chunk 4 (Position: 4, Bytes: 409, Runes: 353) ---
+## Mixed Language Paragraph
+
+This paragraph contains both English and Japanese. 日本語と英語が混在しています。The chunking algorithm should handle this properly. 適切に処理されるべきです。
+
+## Short Paragraphs
+
+First paragraph.
+...
+
