@@ -21,11 +21,8 @@
 ### Build from Source
 
 ```bash
-git clone https://github.com/towada/markdown-vector-mcp.git
+git clone https://github.com/tomohiro-owada/markdown-vector-mcp.git
 cd markdown-vector-mcp
-
-# モデルファイルのダウンロード
-python3 scripts/download_model.py
 
 # ビルド
 go build -o markdown-vector-mcp cmd/main.go
@@ -34,18 +31,10 @@ go build -o markdown-vector-mcp cmd/main.go
 または、ビルドスクリプトを使用：
 
 ```bash
-# モデルファイルのダウンロード
-python3 scripts/download_model.py
-
-# ビルド
 ./build.sh
 ```
 
-**注意**: 初回は`multilingual-e5-small`モデル（約450MB）のダウンロードが必要です。Pythonとpipが必要です：
-
-```bash
-pip install transformers optimum[onnxruntime]
-```
+**初回起動時に自動でモデルをダウンロード**: `multilingual-e5-small`モデル（約450MB）が初回起動時に自動的にHugging Faceからダウンロードされます。Python不要！
 
 ## Quick Start
 

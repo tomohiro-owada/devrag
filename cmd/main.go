@@ -33,11 +33,18 @@ func main() {
 	fmt.Fprintf(os.Stderr, "[INFO] Model: %s (dimensions: %d)\n", cfg.Model.Name, cfg.Model.Dimensions)
 	fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
 
-	// 2. Detect device
+	// 2. Download model files if needed
+	modelDir := "models"
+	if err := embedder.DownloadModelFiles(modelDir); err != nil {
+		fmt.Fprintf(os.Stderr, "[FATAL] Failed to download model files: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 3. Detect device
 	device := embedder.DetectDevice(cfg.Compute.Device, cfg.Compute.FallbackToCPU)
 	fmt.Fprintf(os.Stderr, "[INFO] Using device: %s\n", device)
 
-	// 3. Initialize components
+	// 4. Initialize components
 
 	// Ensure documents directory exists
 	if err := os.MkdirAll(cfg.DocumentsDir, 0755); err != nil {
