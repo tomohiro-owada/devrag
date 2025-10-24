@@ -6,6 +6,7 @@
 
 - 🔍 自然言語による意味的検索
 - 📦 ワンバイナリー配布
+- 🚀 **モデルの自動ダウンロード（Python不要！）**
 - 🖥️ クロスプラットフォーム対応（macOS/Linux/Windows）
 - ⚡ GPU/CPU自動検出
 - 🔄 ファイル差分自動同期
@@ -44,10 +45,19 @@ go build -o markdown-vector-mcp cmd/main.go
 ./markdown-vector-mcp
 ```
 
-初回起動時に以下のファイルが自動生成されます：
+初回起動時に以下が自動的に行われます：
+
+**自動ダウンロード**（初回のみ）：
+- `multilingual-e5-small`モデル（約450MB）をHugging Faceからダウンロード
+- 進捗表示付き
+- 2回目以降はスキップされます
+
+**自動生成**：
 - `config.json` - 設定ファイル
 - `documents/` - マークダウンファイル配置用ディレクトリ
 - `vectors.db` - ベクトルデータベース（SQLite）
+
+**注意**: 初回起動時はインターネット接続が必要です。
 
 ### 2. マークダウンファイルを配置
 
@@ -190,6 +200,20 @@ markdown-vector-mcp/
 
 ## Troubleshooting
 
+### モデルのダウンロードに失敗する
+
+**原因**: インターネット接続の問題、Hugging Faceサーバーの問題
+
+**解決方法**:
+1. インターネット接続を確認
+2. プロキシ環境の場合、環境変数を設定：
+   ```bash
+   export HTTP_PROXY=http://your-proxy:port
+   export HTTPS_PROXY=http://your-proxy:port
+   ```
+3. 手動でダウンロード（`models/DOWNLOAD.md`参照）
+4. ダウンロードを再試行（不完全なファイルは削除されます）
+
 ### GPU検出されない
 
 `config.json`で`"device": "cpu"`を明示的に指定してください。
@@ -208,6 +232,7 @@ markdown-vector-mcp/
 - Go 1.21以上がインストールされているか確認
 - CGOが有効になっているか確認（`go env CGO_ENABLED`で確認）
 - 依存ライブラリが正しくインストールされているか確認
+- 初回起動時はモデルダウンロードのためインターネット接続が必要
 
 ### 検索結果が期待と異なる
 

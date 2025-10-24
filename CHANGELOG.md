@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-10-24
+
+### Added
+- **Automatic model download on first run** - No Python dependencies required!
+- Models are automatically downloaded from Hugging Face on first startup
+- Progress display during model download
+- Eliminates the need for manual model setup
+
+### Changed
+- Simplified installation process - just build and run
+- Updated documentation to reflect automatic download feature
+
 ## [1.0.0] - 2024-10-24
 
 ### Added
@@ -55,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known Limitations
 - Cross-compilation with CGO requires platform-specific toolchains
 - GPU support currently limited to macOS Apple Silicon (Metal)
-- Model loading requires ONNX model files in the models/ directory
+- First run requires internet connection to download model files (~450MB)
 
 ## [Unreleased]
 
