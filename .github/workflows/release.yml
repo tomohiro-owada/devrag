@@ -54,7 +54,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
-      - name: Build
+      - name: Set up MinGW (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-sqlite3
+
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: msys2 {0}
+        env:
+          CGO_ENABLED: 1
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -ldflags="-s -w" -o ${{ matrix.binary_name }} cmd/main.go
+
+      - name: Build (Unix)
+        if: matrix.os != 'windows-latest'
         env:
           CGO_ENABLED: 1
           GOOS: ${{ matrix.goos }}
@@ -74,9 +95,10 @@ jobs:
 
       - name: Create zip (Windows)
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
-          7z a ${{ matrix.binary_name }}.zip ${{ matrix.binary_name }}
-          certutil -hashfile ${{ matrix.binary_name }}.zip SHA256 > ${{ matrix.binary_name }}.zip.sha256
+          Compress-Archive -Path ${{ matrix.binary_name }} -DestinationPath ${{ matrix.binary_name }}.zip
+          (Get-FileHash -Algorithm SHA256 ${{ matrix.binary_name }}.zip).Hash | Out-File -FilePath ${{ matrix.binary_name }}.zip.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
