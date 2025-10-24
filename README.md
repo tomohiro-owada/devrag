@@ -14,7 +14,7 @@
 
 ### Download Binary
 
-[Releases](https://github.com/towada/markdown-vector-mcp/releases)ページから
+[Releases](https://github.com/tomohiro-owada/markdown-vector-mcp/releases)ページから
 お使いのOSに合ったバイナリをダウンロードしてください：
 
 | Platform | Description | File |
