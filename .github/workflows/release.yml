@@ -54,16 +54,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
-      - name: Set up MSYS2 and MinGW (Windows)
+      - name: Set up MSYS2 and dependencies (Windows)
         if: matrix.os == 'windows-latest'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: false
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-sqlite3
+        shell: bash
+        run: |
+          # Install MSYS2 packages using chocolatey's msys2
+          C:/msys64/usr/bin/pacman.exe -Syu --noconfirm
+          C:/msys64/usr/bin/pacman.exe -S --noconfirm mingw-w64-x86_64-gcc mingw-w64-x86_64-sqlite3
 
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
@@ -73,24 +70,23 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          # Find MSYS2 installation
-          if [ -d "D:/a/_temp/msys64" ]; then
-            MSYS_ROOT="D:/a/_temp/msys64"
-          elif [ -d "C:/msys64" ]; then
-            MSYS_ROOT="C:/msys64"
-          else
-            echo "MSYS2 not found!"
-            exit 1
-          fi
-          echo "Using MSYS2 at: $MSYS_ROOT"
+          # Use pre-installed MSYS2
+          MSYS_ROOT="C:/msys64"
 
           export PATH="$MSYS_ROOT/mingw64/bin:$PATH"
           export PKG_CONFIG_PATH="$MSYS_ROOT/mingw64/lib/pkgconfig"
-          export CGO_CFLAGS="-I$MSYS_ROOT/mingw64/include"
-          export CGO_LDFLAGS="-L$MSYS_ROOT/mingw64/lib"
 
-          # Verify sqlite3.h exists
-          ls -la "$MSYS_ROOT/mingw64/include/sqlite3.h" || echo "sqlite3.h not found!"
+          # Use Windows-style paths for CGO
+          export CGO_CFLAGS="-IC:/msys64/mingw64/include"
+          export CGO_LDFLAGS="-LC:/msys64/mingw64/lib"
+
+          # Debug: check if sqlite3.h exists
+          echo "Checking for sqlite3.h..."
+          ls -la C:/msys64/mingw64/include/sqlite3.h || echo "sqlite3.h not found"
+
+          # Debug: show gcc location
+          which gcc
+          gcc --version
 
           go build -ldflags="-s -w" -o ${{ matrix.binary_name }} cmd/main.go
 
