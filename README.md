@@ -5,8 +5,6 @@
 ## Features
 
 - 🔍 自然言語による意味的検索
-- 📦 ワンバイナリー配布
-- 🚀 **モデルの自動ダウンロード（Python不要！）**
 - 🖥️ クロスプラットフォーム対応（macOS/Linux/Windows）
 - ⚡ GPU/CPU自動検出
 - 🔄 ファイル差分自動同期
@@ -40,24 +38,6 @@ sudo mv markdown-vector-mcp-* /usr/local/bin/markdown-vector-mcp
 - zipファイルを解凍
 - 任意のフォルダに配置（例: `C:\Program Files\markdown-vector-mcp\`）
 
-### Build from Source
-
-```bash
-git clone https://github.com/tomohiro-owada/markdown-vector-mcp.git
-cd markdown-vector-mcp
-
-# ビルド
-go build -o markdown-vector-mcp cmd/main.go
-```
-
-または、ビルドスクリプトを使用：
-
-```bash
-./build.sh
-```
-
-**初回起動時に自動でモデルをダウンロード**: `multilingual-e5-small`モデル（約450MB）が初回起動時に自動的にHugging Faceからダウンロードされます。Python不要！
-
 ## Quick Start
 
 ### 1. 初回起動
@@ -65,20 +45,6 @@ go build -o markdown-vector-mcp cmd/main.go
 ```bash
 ./markdown-vector-mcp
 ```
-
-初回起動時に以下が自動的に行われます：
-
-**自動ダウンロード**（初回のみ）：
-- `multilingual-e5-small`モデル（約450MB）をHugging Faceからダウンロード
-- 進捗表示付き
-- 2回目以降はスキップされます
-
-**自動生成**：
-- `config.json` - 設定ファイル
-- `documents/` - マークダウンファイル配置用ディレクトリ
-- `vectors.db` - ベクトルデータベース（SQLite）
-
-**注意**: 初回起動時はインターネット接続が必要です。
 
 ### 2. マークダウンファイルを配置
 
@@ -88,9 +54,9 @@ cp your-notes.md documents/
 
 起動時に自動的にインデックス化されます。
 
-### 3. Claude Desktop設定
+### 3. Claude Code設定
 
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+`~/.claude.json or .mcp.json (macOS):
 ```json
 {
   "mcpServers": {
@@ -102,21 +68,9 @@ cp your-notes.md documents/
 }
 ```
 
-Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-```json
-{
-  "mcpServers": {
-    "markdown-vector": {
-      "type": "stdio",
-      "command": "C:\\path\\to\\markdown-vector-mcp.exe"
-    }
-  }
-}
-```
-
 ### 4. 検索
 
-Claude Desktopで：
+Claude Code等で：
 ```
 「JWTの認証方法について検索して」
 ```
