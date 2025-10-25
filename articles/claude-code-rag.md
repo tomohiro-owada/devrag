@@ -15,7 +15,7 @@ Claude Code に毎回ドキュメントを読ませるのやめませんか？
 - **完全無料**: API 不要、ローカル完結
 - **簡単**: 5 分でセットアップ完了
 - **高速**: トークン消費 1/40、レスポンス 15 倍速
-- リポジトリ: https://github.com/tomohiro-owada/devrag （作者が Claude Code で毎日困ってたので作りました）
+- リポジトリ: https://github.com/tomohiro-owada/devrag
 
 ## Claude Code にドキュメントを読ませる 3 つの問題
 
