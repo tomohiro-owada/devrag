@@ -4,7 +4,6 @@ emoji: "🤖"
 type: "tech"
 topics: ["claudecode", "rag", "ai", "開発効率化", "mcp"]
 published: true
-publication_name: ""
 ---
 
 ## TL;DR
