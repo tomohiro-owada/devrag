@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2024-10-25
+
+### Changed
+- **Project renamed to DevRag** - Rebranded from markdown-vector-mcp to devrag
+- Updated module name to `github.com/tomohiro-owada/devrag`
+- All binary names changed to `devrag-*`
+- MCP server configuration name changed to `devrag`
+
+### Added
+- Frontmatter support for markdown files
+- Local MCP configuration file (.mcp.json)
+
 ## [1.0.2] - 2024-10-24
 
 ### Changed
