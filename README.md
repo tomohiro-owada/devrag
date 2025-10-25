@@ -1,49 +1,54 @@
-# markdown-vector-mcp
+# DevRag
 
-マークダウンファイルをベクトル検索可能にするMCPサーバー
+**開発者向けRAG - Claude Codeがあなたの技術メモを理解する**
 
-## Features
+DevRagは、開発ドキュメント特化の簡易RAGシステムです。
+マークダウンファイルをベクトル化し、Claude Codeが自然言語で技術情報を検索できるようにします。
 
-- 🔍 自然言語による意味的検索
-- 🖥️ クロスプラットフォーム対応（macOS/Linux/Windows）
-- ⚡ GPU/CPU自動検出
-- 🔄 ファイル差分自動同期
-- 🌐 多言語対応（multilingual-e5-smallモデル使用）
+## 特徴
+
+- 🤖 **簡易RAG** - Claude用のシンプルな検索拡張（Retrieval-Augmented Generation）
+- 📝 **マークダウン対応** - .mdファイルを自動でインデックス化
+- 🔍 **自然言語検索** - 「JWTの認証方法」のように質問するだけで関連情報を検索
+- 🚀 **ワンバイナリー** - Python不要、モデルは初回起動時に自動ダウンロード
+- 🖥️ **クロスプラットフォーム** - macOS/Linux/Windows対応
+- ⚡ **高速** - GPU/CPU自動検出、差分同期で効率的
+- 🌐 **多言語** - 日本語・英語を含む100以上の言語に対応
 
 ## Installation
 
 ### Download Binary
 
-[Releases](https://github.com/tomohiro-owada/markdown-vector-mcp/releases)ページから
+[Releases](https://github.com/tomohiro-owada/devrag/releases)ページから
 お使いのOSに合ったバイナリをダウンロードしてください：
 
 | Platform | Description | File |
 |----------|-------------|------|
-| macOS | Apple Silicon (M1/M2/M3) | `markdown-vector-mcp-macos-apple-silicon.tar.gz` |
-| macOS | Intel | `markdown-vector-mcp-macos-intel.tar.gz` |
-| Linux | x86_64 / x64 | `markdown-vector-mcp-linux-x64.tar.gz` |
-| Linux | ARM64 | `markdown-vector-mcp-linux-arm64.tar.gz` |
-| Windows | x64 | `markdown-vector-mcp-windows-x64.zip` |
+| macOS | Apple Silicon (M1/M2/M3) | `devrag-macos-apple-silicon.tar.gz` |
+| macOS | Intel | `devrag-macos-intel.tar.gz` |
+| Linux | x86_64 / x64 | `devrag-linux-x64.tar.gz` |
+| Linux | ARM64 | `devrag-linux-arm64.tar.gz` |
+| Windows | x64 | `devrag-windows-x64.zip` |
 
 ダウンロード後、解凍してバイナリを適切な場所に配置してください。
 
 **macOS/Linuxの場合:**
 ```bash
-tar -xzf markdown-vector-mcp-*.tar.gz
-chmod +x markdown-vector-mcp-*
-sudo mv markdown-vector-mcp-* /usr/local/bin/markdown-vector-mcp
+tar -xzf devrag-*.tar.gz
+chmod +x devrag-*
+sudo mv devrag-* /usr/local/bin/devrag
 ```
 
 **Windowsの場合:**
 - zipファイルを解凍
-- 任意のフォルダに配置（例: `C:\Program Files\markdown-vector-mcp\`）
+- 任意のフォルダに配置（例: `C:\Program Files\devrag\`）
 
 ## Quick Start
 
 ### 1. 初回起動
 
 ```bash
-./markdown-vector-mcp
+./devrag
 ```
 
 ### 2. マークダウンファイルを配置
@@ -60,9 +65,9 @@ cp your-notes.md documents/
 ```json
 {
   "mcpServers": {
-    "markdown-vector": {
+    "devrag": {
       "type": "stdio",
-      "command": "/absolute/path/to/markdown-vector-mcp"
+      "command": "/absolute/path/to/devrag"
     }
   }
 }
@@ -166,7 +171,7 @@ go test . -v -run TestEndToEnd
 ./build.sh
 
 # または直接ビルド
-go build -o markdown-vector-mcp cmd/main.go
+go build -o devrag cmd/main.go
 
 # リリース用ビルド（クロスプラットフォーム）
 ./scripts/build-release.sh
@@ -190,12 +195,12 @@ GitHub Actionsが自動的に：
 3. バイナリをアップロード
 4. チェックサムファイルを生成
 
-リリースが完成したら[Releases](https://github.com/towada/markdown-vector-mcp/releases)ページで確認できます。
+リリースが完成したら[Releases](https://github.com/towada/devrag/releases)ページで確認できます。
 
 ### Project Structure
 
 ```
-markdown-vector-mcp/
+devrag/
 ├── cmd/
 │   └── main.go              # エントリーポイント
 ├── internal/

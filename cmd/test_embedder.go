@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/towada/markdown-vector-mcp/internal/embedder"
+	"github.com/tomohiro-owada/devrag/internal/embedder"
 	ort "github.com/yalue/onnxruntime_go"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// Model path
-	modelPath := "/Users/towada/projects/markdown-vector-mcp/models/model.onnx"
+	modelPath := "/Users/towada/projects/devrag/models/model.onnx"
 
 	// Check if model exists
 	if _, err := os.Stat(modelPath); os.IsNotExist(err) {

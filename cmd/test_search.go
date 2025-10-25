@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/towada/markdown-vector-mcp/internal/vectordb"
+	"github.com/tomohiro-owada/devrag/internal/vectordb"
 )
 
 func main() {

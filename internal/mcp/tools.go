@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/tomohiro-owada/devrag/internal/frontmatter"
 )
 
 // Tool 1: search
@@ -193,6 +195,150 @@ func (s *MCPServer) handleReindexDocument(ctx context.Context, request mcp.CallT
 	return mcp.NewToolResultJSON(map[string]interface{}{
 		"success": true,
 		"message": "Document reindexed successfully",
+	})
+}
+
+// Tool 6: add_frontmatter
+func (s *MCPServer) registerAddFrontmatterTool() {
+	tool := mcp.NewTool(
+		"add_frontmatter",
+		mcp.WithDescription("マークダウンファイルにメタデータ（frontmatter）を追加"),
+		mcp.WithString("filepath",
+			mcp.Required(),
+			mcp.Description("マークダウンファイルのパス"),
+		),
+		mcp.WithString("domain",
+			mcp.Description("領域: frontend | backend | mobile | infrastructure | other"),
+		),
+		mcp.WithString("docType",
+			mcp.Description("文書種別: spec | design | api | guide | note | other"),
+		),
+		mcp.WithString("language",
+			mcp.Description("言語: go | typescript | python | rust | java | kotlin | swift | other"),
+		),
+		mcp.WithString("tags",
+			mcp.Description("タグ（カンマ区切り）: authentication, database, caching"),
+		),
+		mcp.WithString("project",
+			mcp.Description("プロジェクト名（任意）"),
+		),
+	)
+
+	s.server.AddTool(tool, s.handleAddFrontmatter)
+}
+
+func (s *MCPServer) handleAddFrontmatter(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	filePath := request.GetString("filepath", "")
+	if filePath == "" {
+		return mcp.NewToolResultError("filepath is required"), nil
+	}
+
+	// Validate path
+	if err := validatePath(filePath, s.config.DocumentsDir); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
+	}
+
+	// Build metadata
+	metadata := &frontmatter.Metadata{
+		Domain:   request.GetString("domain", ""),
+		DocType:  request.GetString("docType", ""),
+		Language: request.GetString("language", ""),
+		Project:  request.GetString("project", ""),
+	}
+
+	// Parse tags
+	tagsStr := request.GetString("tags", "")
+	if tagsStr != "" {
+		tags := []string{}
+		for _, tag := range strings.Split(tagsStr, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+		metadata.Tags = tags
+	}
+
+	// Add frontmatter
+	if err := frontmatter.AddFrontmatter(filePath, metadata); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to add frontmatter: %v", err)), nil
+	}
+
+	return mcp.NewToolResultJSON(map[string]interface{}{
+		"success": true,
+		"message": "Frontmatter added successfully",
+	})
+}
+
+// Tool 7: update_frontmatter
+func (s *MCPServer) registerUpdateFrontmatterTool() {
+	tool := mcp.NewTool(
+		"update_frontmatter",
+		mcp.WithDescription("マークダウンファイルのメタデータ（frontmatter）を更新"),
+		mcp.WithString("filepath",
+			mcp.Required(),
+			mcp.Description("マークダウンファイルのパス"),
+		),
+		mcp.WithString("domain",
+			mcp.Description("領域: frontend | backend | mobile | infrastructure | other"),
+		),
+		mcp.WithString("docType",
+			mcp.Description("文書種別: spec | design | api | guide | note | other"),
+		),
+		mcp.WithString("language",
+			mcp.Description("言語: go | typescript | python | rust | java | kotlin | swift | other"),
+		),
+		mcp.WithString("tags",
+			mcp.Description("タグ（カンマ区切り）: authentication, database, caching"),
+		),
+		mcp.WithString("project",
+			mcp.Description("プロジェクト名（任意）"),
+		),
+	)
+
+	s.server.AddTool(tool, s.handleUpdateFrontmatter)
+}
+
+func (s *MCPServer) handleUpdateFrontmatter(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	filePath := request.GetString("filepath", "")
+	if filePath == "" {
+		return mcp.NewToolResultError("filepath is required"), nil
+	}
+
+	// Validate path
+	if err := validatePath(filePath, s.config.DocumentsDir); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
+	}
+
+	// Build metadata
+	metadata := &frontmatter.Metadata{
+		Domain:   request.GetString("domain", ""),
+		DocType:  request.GetString("docType", ""),
+		Language: request.GetString("language", ""),
+		Project:  request.GetString("project", ""),
+	}
+
+	// Parse tags
+	tagsStr := request.GetString("tags", "")
+	if tagsStr != "" {
+		tags := []string{}
+		for _, tag := range strings.Split(tagsStr, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+		metadata.Tags = tags
+	}
+
+	// Update frontmatter
+	if err := frontmatter.UpdateFrontmatter(filePath, metadata); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to update frontmatter: %v", err)), nil
+	}
+
+	return mcp.NewToolResultJSON(map[string]interface{}{
+		"success": true,
+		"message": "Frontmatter updated successfully",
 	})
 }
 

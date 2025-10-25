@@ -20,13 +20,13 @@ echo '{
       "version": "1.0.0"
     }
   }
-}' | ./markdown-vector-mcp 2>&1 &
+}' | ./devrag 2>&1 &
 
 # Wait for server to start
 sleep 3
 
 # Kill any remaining process
-pkill -f markdown-vector-mcp 2>/dev/null || true
+pkill -f devrag 2>/dev/null || true
 
 echo ""
 echo "Test complete. If you see JSON-RPC responses above, the MCP protocol is working."

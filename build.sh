@@ -2,7 +2,7 @@
 
 set -e
 
-echo "Building markdown-vector-mcp..."
+echo "Building devrag..."
 
 # Output directory
 mkdir -p bin
@@ -26,17 +26,17 @@ echo ""
 # Note: CGO is required for sqlite-vec, so cross-compilation is limited
 # Build for current platform first
 echo "Building for current platform..."
-CGO_ENABLED=1 go build -ldflags="$LDFLAGS" -o bin/markdown-vector-mcp cmd/main.go
+CGO_ENABLED=1 go build -ldflags="$LDFLAGS" -o bin/devrag cmd/main.go
 
 # macOS (Apple Silicon) - only on macOS arm64
 if [[ "$OSTYPE" == "darwin"* ]] && [[ "$(uname -m)" == "arm64" ]]; then
   echo "Building for macOS (arm64)..."
   CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags="$LDFLAGS" \
-    -o bin/markdown-vector-mcp-darwin-arm64 cmd/main.go
+    -o bin/devrag-darwin-arm64 cmd/main.go
 
   echo "Building for macOS (amd64)..."
   CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags="$LDFLAGS" \
-    -o bin/markdown-vector-mcp-darwin-amd64 cmd/main.go
+    -o bin/devrag-darwin-amd64 cmd/main.go
 fi
 
 # Note: For Windows and Linux builds from macOS, you would need:

@@ -298,10 +298,10 @@ import (
     "os"
     "testing"
 
-    "github.com/towada/markdown-vector-mcp/internal/config"
-    "github.com/towada/markdown-vector-mcp/internal/embedder"
-    "github.com/towada/markdown-vector-mcp/internal/indexer"
-    "github.com/towada/markdown-vector-mcp/internal/vectordb"
+    "github.com/towada/devrag/internal/config"
+    "github.com/towada/devrag/internal/embedder"
+    "github.com/towada/devrag/internal/indexer"
+    "github.com/towada/devrag/internal/vectordb"
 )
 
 func TestEndToEnd_FirstRun(t *testing.T) {
@@ -360,7 +360,7 @@ func TestEndToEnd_FirstRun(t *testing.T) {
 
 set -e
 
-echo "Building markdown-vector-mcp..."
+echo "Building devrag..."
 
 # Output directory
 mkdir -p bin
@@ -372,22 +372,22 @@ TAGS="netgo"
 # macOS (Apple Silicon)
 echo "Building for macOS (arm64)..."
 GOOS=darwin GOARCH=arm64 go build -tags "$TAGS" -ldflags="$LDFLAGS" \
-  -o bin/markdown-vector-mcp-darwin-arm64 cmd/main.go
+  -o bin/devrag-darwin-arm64 cmd/main.go
 
 # macOS (Intel)
 echo "Building for macOS (amd64)..."
 GOOS=darwin GOARCH=amd64 go build -tags "$TAGS" -ldflags="$LDFLAGS" \
-  -o bin/markdown-vector-mcp-darwin-amd64 cmd/main.go
+  -o bin/devrag-darwin-amd64 cmd/main.go
 
 # Windows
 echo "Building for Windows (amd64)..."
 GOOS=windows GOARCH=amd64 go build -tags "$TAGS" -ldflags="$LDFLAGS" \
-  -o bin/markdown-vector-mcp-windows-amd64.exe cmd/main.go
+  -o bin/devrag-windows-amd64.exe cmd/main.go
 
 # Linux
 echo "Building for Linux (amd64)..."
 GOOS=linux GOARCH=amd64 go build -tags "$TAGS" -ldflags="$LDFLAGS" \
-  -o bin/markdown-vector-mcp-linux-amd64 cmd/main.go
+  -o bin/devrag-linux-amd64 cmd/main.go
 
 echo "Build complete!"
 ls -lh bin/
@@ -397,7 +397,7 @@ ls -lh bin/
 
 ```bat
 @echo off
-echo Building markdown-vector-mcp...
+echo Building devrag...
 
 mkdir bin 2>nul
 
@@ -407,7 +407,7 @@ set TAGS=netgo
 echo Building for Windows (amd64)...
 set GOOS=windows
 set GOARCH=amd64
-go build -tags %TAGS% -ldflags="%LDFLAGS%" -o bin\markdown-vector-mcp-windows-amd64.exe cmd\main.go
+go build -tags %TAGS% -ldflags="%LDFLAGS%" -o bin\devrag-windows-amd64.exe cmd\main.go
 
 echo Build complete!
 dir bin\
@@ -444,7 +444,7 @@ chmod +x build.sh
 **ファイル**: `README.md`
 
 ```markdown
-# markdown-vector-mcp
+# devrag
 
 マークダウンファイルをベクトル検索可能にするMCPサーバー
 
@@ -460,15 +460,15 @@ chmod +x build.sh
 
 ### Download Binary
 
-[Releases](https://github.com/towada/markdown-vector-mcp/releases)から
+[Releases](https://github.com/towada/devrag/releases)から
 お使いのOSに合ったバイナリをダウンロード。
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/towada/markdown-vector-mcp.git
-cd markdown-vector-mcp
-go build -o markdown-vector-mcp cmd/main.go
+git clone https://github.com/towada/devrag.git
+cd devrag
+go build -o devrag cmd/main.go
 ```
 
 ## Quick Start
@@ -476,7 +476,7 @@ go build -o markdown-vector-mcp cmd/main.go
 ### 1. 初回起動
 
 ```bash
-./markdown-vector-mcp
+./devrag
 ```
 
 自動生成されるファイル：
@@ -496,8 +496,8 @@ cp your-notes.md documents/
 ```json
 {
   "mcpServers": {
-    "markdown-vector": {
-      "command": "/path/to/markdown-vector-mcp"
+    "devrag": {
+      "command": "/path/to/devrag"
     }
   }
 }
@@ -548,7 +548,7 @@ go test ./...
 ./build.sh
 
 # Run with debug
-./markdown-vector-mcp --debug
+./devrag --debug
 ```
 
 ## Troubleshooting
@@ -632,7 +632,7 @@ git push origin v1.0.0
 
 # Create GitHub release
 gh release create v1.0.0 \
-  bin/markdown-vector-mcp-* \
+  bin/devrag-* \
   --title "v1.0.0" \
   --notes-file CHANGELOG.md
 ```

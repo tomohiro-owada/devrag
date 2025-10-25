@@ -5,7 +5,7 @@ description: Phase 2コア機能実装。マークダウンパーサー、ベク
 
 # Phase 2: コア機能実装
 
-markdown-vector-mcpのベクトル検索コア機能を実装します。
+devragのベクトル検索コア機能を実装します。
 
 ## 前提条件
 
@@ -251,9 +251,9 @@ import (
     "path/filepath"
     "time"
 
-    "github.com/towada/markdown-vector-mcp/internal/config"
-    "github.com/towada/markdown-vector-mcp/internal/embedder"
-    "github.com/towada/markdown-vector-mcp/internal/vectordb"
+    "github.com/towada/devrag/internal/config"
+    "github.com/towada/devrag/internal/embedder"
+    "github.com/towada/devrag/internal/vectordb"
 )
 
 type Indexer struct {

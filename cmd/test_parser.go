@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/towada/markdown-vector-mcp/internal/indexer"
+	"github.com/tomohiro-owada/devrag/internal/indexer"
 )
 
 func main() {

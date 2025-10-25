@@ -1,4 +1,4 @@
-module github.com/towada/markdown-vector-mcp
+module github.com/tomohiro-owada/devrag
 
 go 1.23.0
 

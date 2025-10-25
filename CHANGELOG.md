@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-10-24
 
 ### Added
-- Initial release of markdown-vector-mcp
+- Initial release of DevRag
 - Vector search for markdown files using multilingual-e5-small model
 - MCP Protocol support for integration with Claude Desktop
 - Cross-platform builds for macOS (arm64/amd64)

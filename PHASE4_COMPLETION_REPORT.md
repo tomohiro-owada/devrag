@@ -4,7 +4,7 @@
 2024-10-24
 
 ## 概要
-markdown-vector-mcpプロジェクトのPhase 4（テスト・ビルド）を完了し、プロジェクトをリリース可能な状態にしました。
+devragプロジェクトのPhase 4（テスト・ビルド）を完了し、プロジェクトをリリース可能な状態にしました。
 
 ---
 
@@ -153,9 +153,9 @@ Windows用ビルドスクリプト：
 
 ```
 bin/
-├── markdown-vector-mcp              (7.1M) - 現在のプラットフォーム
-├── markdown-vector-mcp-darwin-arm64 (7.1M) - macOS Apple Silicon
-└── markdown-vector-mcp-darwin-amd64 (7.5M) - macOS Intel
+├── devrag              (7.1M) - 現在のプラットフォーム
+├── devrag-darwin-arm64 (7.1M) - macOS Apple Silicon
+└── devrag-darwin-amd64 (7.5M) - macOS Intel
 ```
 
 **合計サイズ**: 約22MB
@@ -238,7 +238,7 @@ CGOが必要なため、真のクロスプラットフォームビルドには�
 ### 6.2 ファイル構成
 
 ```
-markdown-vector-mcp/
+devrag/
 ├── cmd/                     # エントリーポイント
 ├── internal/
 │   ├── config/              # 設定管理 + テスト
@@ -311,7 +311,7 @@ markdown-vector-mcp/
 3. **GitHubリリースの作成**
    ```bash
    gh release create v1.0.0 \
-     bin/markdown-vector-mcp-* \
+     bin/devrag-* \
      --title "v1.0.0 - Initial Release" \
      --notes-file CHANGELOG.md
    ```
@@ -358,7 +358,7 @@ Phase 4（テスト・ビルド）が成功裏に完了しました。
 
 ### 9.3 プロジェクトの状態
 
-**markdown-vector-mcpプロジェクトは本番環境にデプロイ可能な状態です。**
+**devragプロジェクトは本番環境にデプロイ可能な状態です。**
 
 すべての主要機能が実装され、テストされ、ドキュメント化されています。
 バージョン1.0.0としてリリースする準備が整いました。

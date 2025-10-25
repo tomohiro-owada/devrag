@@ -8,7 +8,7 @@
 
 ```bash
 # ビルド後、初回起動時に自動ダウンロード
-./markdown-vector-mcp
+./devrag
 ```
 
 プログラムは起動時にモデルファイルの存在を確認し、存在しない場合は自動的にHugging Faceからダウンロードします。
@@ -77,7 +77,7 @@ python3 scripts/download_model.py
 ```bash
 export HTTP_PROXY=http://your-proxy:port
 export HTTPS_PROXY=http://your-proxy:port
-./markdown-vector-mcp
+./devrag
 ```
 
 または、手動でダウンロードしてこのディレクトリに配置してください。

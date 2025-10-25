@@ -1,5 +1,5 @@
 @echo off
-echo Building markdown-vector-mcp...
+echo Building devrag...
 
 if not exist bin mkdir bin
 
@@ -15,7 +15,7 @@ echo.
 echo Building for Windows (amd64)...
 set GOOS=windows
 set GOARCH=amd64
-go build -tags %TAGS% -ldflags="%LDFLAGS% -X main.Version=%VERSION%" -o bin\markdown-vector-mcp-windows-amd64.exe cmd\main.go
+go build -tags %TAGS% -ldflags="%LDFLAGS% -X main.Version=%VERSION%" -o bin\devrag-windows-amd64.exe cmd\main.go
 
 echo.
 echo Build complete!

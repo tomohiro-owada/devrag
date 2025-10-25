@@ -1,4 +1,4 @@
-# markdown-vector-mcp - プロジェクト現状
+# devrag - プロジェクト現状
 
 **最終更新**: 2025-10-24
 **現在のフェーズ**: Phase 3 完了 → Phase 4 準備完了
@@ -60,7 +60,7 @@ Claude Code用のMCPサーバー。マークダウンファイルのベクトル
 ## ディレクトリ構成
 
 ```
-markdown-vector-mcp/
+devrag/
 ├── cmd/
 │   └── main.go              # MCPサーバーエントリーポイント
 ├── internal/
@@ -81,12 +81,12 @@ markdown-vector-mcp/
 
 ### ビルド
 ```bash
-go build -o markdown-vector-mcp cmd/main.go
+go build -o devrag cmd/main.go
 ```
 
 ### 実行
 ```bash
-./markdown-vector-mcp
+./devrag
 ```
 
 ### 設定ファイル（config.json）
@@ -117,8 +117,8 @@ go build -o markdown-vector-mcp cmd/main.go
 ```json
 {
   "mcpServers": {
-    "markdown-vector": {
-      "command": "/path/to/markdown-vector-mcp"
+    "devrag": {
+      "command": "/path/to/devrag"
     }
   }
 }
@@ -196,7 +196,7 @@ go mod download
 ### 実行時エラー
 ```bash
 # デバッグモード（ログ確認）
-./markdown-vector-mcp 2>&1 | tee debug.log
+./devrag 2>&1 | tee debug.log
 
 # データベースのリセット
 rm vectors.db

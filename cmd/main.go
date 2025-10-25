@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/towada/markdown-vector-mcp/internal/config"
-	"github.com/towada/markdown-vector-mcp/internal/embedder"
-	"github.com/towada/markdown-vector-mcp/internal/indexer"
-	"github.com/towada/markdown-vector-mcp/internal/mcp"
-	"github.com/towada/markdown-vector-mcp/internal/vectordb"
+	"github.com/tomohiro-owada/devrag/internal/config"
+	"github.com/tomohiro-owada/devrag/internal/embedder"
+	"github.com/tomohiro-owada/devrag/internal/indexer"
+	"github.com/tomohiro-owada/devrag/internal/mcp"
+	"github.com/tomohiro-owada/devrag/internal/vectordb"
 )
 
 func main() {
-	fmt.Fprintf(os.Stderr, "[INFO] markdown-vector-mcp starting...\n")
+	fmt.Fprintf(os.Stderr, "[INFO] DevRag starting...\n")
 
 	// 1. Load configuration
 	cfg, err := config.Load()

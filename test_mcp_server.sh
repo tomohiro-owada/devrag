@@ -7,7 +7,7 @@ echo "Starting MCP server test..."
 echo ""
 
 # Run the server in background
-./markdown-vector-mcp &
+./devrag &
 PID=$!
 
 # Wait 2 seconds
@@ -18,7 +18,7 @@ kill $PID 2>/dev/null || true
 
 echo ""
 echo "Server test complete. Check stderr output above for:"
-echo "  - [INFO] markdown-vector-mcp starting..."
+echo "  - [INFO] devrag starting..."
 echo "  - [INFO] Configuration loaded successfully"
 echo "  - [INFO] Using device: cpu"
 echo "  - [INFO] Syncing documents..."

@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/towada/markdown-vector-mcp/internal/config"
-	"github.com/towada/markdown-vector-mcp/internal/embedder"
-	"github.com/towada/markdown-vector-mcp/internal/indexer"
-	"github.com/towada/markdown-vector-mcp/internal/vectordb"
+	"github.com/tomohiro-owada/devrag/internal/config"
+	"github.com/tomohiro-owada/devrag/internal/embedder"
+	"github.com/tomohiro-owada/devrag/internal/indexer"
+	"github.com/tomohiro-owada/devrag/internal/vectordb"
 )
 
 func TestEndToEnd_FirstRun(t *testing.T) {

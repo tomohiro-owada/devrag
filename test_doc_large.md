@@ -4,7 +4,7 @@ This is a comprehensive test document to verify chunking and indexing functional
 
 ## Introduction
 
-The markdown-vector-mcp project is a Model Context Protocol (MCP) server that enables semantic search over markdown documentation. It uses ONNX Runtime for generating embeddings and SQLite with the vec0 extension for efficient vector storage and similarity search.
+The devrag project is a Model Context Protocol (MCP) server that enables semantic search over markdown documentation. It uses ONNX Runtime for generating embeddings and SQLite with the vec0 extension for efficient vector storage and similarity search.
 
 ## Architecture Overview
 

@@ -4,7 +4,7 @@
 2025-10-24
 
 ## 概要
-Phase 3.3（メインループ統合）を完了し、markdown-vector-mcpプロジェクトのMCPサーバー統合が完成しました。
+Phase 3.3（メインループ統合）を完了し、devragプロジェクトのMCPサーバー統合が完成しました。
 
 ---
 
@@ -12,7 +12,7 @@ Phase 3.3（メインループ統合）を完了し、markdown-vector-mcpプロ�
 
 ### 1. cmd/main.go の完全書き換え
 
-**ファイル**: `/Users/towada/projects/markdown-vector-mcp/cmd/main.go`
+**ファイル**: `/Users/towada/projects/devrag/cmd/main.go`
 
 実装した処理フロー：
 
@@ -145,13 +145,13 @@ if err := server.Start(); err != nil {
 
 ### ビルド結果
 ```bash
-$ go build -o markdown-vector-mcp cmd/main.go
+$ go build -o devrag cmd/main.go
 # 成功（警告あり：sqlite-vecのmacOS警告のみ、動作に影響なし）
 ```
 
 ### 実行結果
 ```
-[INFO] markdown-vector-mcp starting...
+[INFO] devrag starting...
 [INFO] Loaded configuration from config.json
 [INFO] Configuration loaded successfully
 [INFO] Documents directory: ./documents
@@ -345,7 +345,7 @@ go test -race ./...
 go test -cover ./...
 
 # ビルドの最適化
-go build -ldflags="-s -w" -o markdown-vector-mcp cmd/main.go
+go build -ldflags="-s -w" -o devrag cmd/main.go
 
 # Claude Code設定ファイルの更新
 # ~/.config/claude-code/config.json
@@ -361,7 +361,7 @@ Phase 3（MCP統合）が完全に完了しました：
 ✅ **Phase 3.2**: MCPツール実装（5つのツール）
 ✅ **Phase 3.3**: メインループ統合
 
-markdown-vector-mcpプロジェクトは、以下の機能を持つ完全なMCPサーバーとして動作します：
+devragプロジェクトは、以下の機能を持つ完全なMCPサーバーとして動作します：
 
 1. マークダウンファイルの自動インデックス化
 2. ベクトル検索による意味的検索

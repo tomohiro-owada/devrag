@@ -1,6 +1,6 @@
-# markdown-vector-mcp Agent Skills
+# devrag Agent Skills
 
-このディレクトリには、markdown-vector-mcpプロジェクトの開発を効率的に進めるためのAgent Skillsが含まれています。
+このディレクトリには、devragプロジェクトの開発を効率的に進めるためのAgent Skillsが含まれています。
 
 ## Available Skills
 

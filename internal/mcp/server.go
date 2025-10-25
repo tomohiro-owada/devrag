@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/towada/markdown-vector-mcp/internal/config"
-	"github.com/towada/markdown-vector-mcp/internal/embedder"
-	"github.com/towada/markdown-vector-mcp/internal/indexer"
-	"github.com/towada/markdown-vector-mcp/internal/vectordb"
+	"github.com/tomohiro-owada/devrag/internal/config"
+	"github.com/tomohiro-owada/devrag/internal/embedder"
+	"github.com/tomohiro-owada/devrag/internal/indexer"
+	"github.com/tomohiro-owada/devrag/internal/vectordb"
 )
 
 type MCPServer struct {
@@ -35,7 +35,7 @@ func (s *MCPServer) Start() error {
 
 	// Create MCP server
 	s.server = server.NewMCPServer(
-		"markdown-vector-mcp",
+		"devrag",
 		"1.0.0",
 	)
 
@@ -57,6 +57,8 @@ func (s *MCPServer) registerTools() {
 	s.registerListDocumentsTool()
 	s.registerDeleteDocumentTool()
 	s.registerReindexDocumentTool()
+	s.registerAddFrontmatterTool()
+	s.registerUpdateFrontmatterTool()
 
-	fmt.Fprintf(os.Stderr, "[INFO] Registered 5 MCP tools\n")
+	fmt.Fprintf(os.Stderr, "[INFO] Registered 7 MCP tools\n")
 }

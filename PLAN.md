@@ -1,4 +1,4 @@
-# markdown-vector-mcp 作業計画書
+# devrag 作業計画書
 
 ## 1. プロジェクト概要
 
@@ -41,7 +41,7 @@ MCPプロトコル実装と全体統合
 
 **成果物**:
 ```
-markdown-vector-mcp/
+devrag/
 ├── cmd/main.go
 ├── internal/
 ├── go.mod
@@ -460,19 +460,19 @@ func main() {
 
 # macOS (Apple Silicon)
 GOOS=darwin GOARCH=arm64 go build -tags netgo -ldflags="-s -w" \
-  -o bin/markdown-vector-mcp-darwin-arm64 cmd/main.go
+  -o bin/devrag-darwin-arm64 cmd/main.go
 
 # macOS (Intel)
 GOOS=darwin GOARCH=amd64 go build -tags netgo -ldflags="-s -w" \
-  -o bin/markdown-vector-mcp-darwin-amd64 cmd/main.go
+  -o bin/devrag-darwin-amd64 cmd/main.go
 
 # Windows
 GOOS=windows GOARCH=amd64 go build -tags netgo -ldflags="-s -w" \
-  -o bin/markdown-vector-mcp-windows-amd64.exe cmd/main.go
+  -o bin/devrag-windows-amd64.exe cmd/main.go
 
 # Linux
 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags="-s -w" \
-  -o bin/markdown-vector-mcp-linux-amd64 cmd/main.go
+  -o bin/devrag-linux-amd64 cmd/main.go
 ```
 
 **所要時間**: 2-3時間
@@ -630,7 +630,7 @@ GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags="-s -w" \
 ## 付録A: 依存ライブラリ一覧
 
 ```go
-module github.com/username/markdown-vector-mcp
+module github.com/username/devrag
 
 go 1.21
 
@@ -647,7 +647,7 @@ require (
 ## 付録B: ディレクトリ構成（最終形）
 
 ```
-markdown-vector-mcp/
+devrag/
 ├── cmd/
 │   └── main.go
 ├── internal/

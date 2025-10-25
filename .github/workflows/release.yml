@@ -19,25 +19,25 @@ jobs:
           - os: macos-latest
             goos: darwin
             goarch: amd64
-            binary_name: markdown-vector-mcp-macos-intel
+            binary_name: devrag-macos-intel
           - os: macos-latest
             goos: darwin
             goarch: arm64
-            binary_name: markdown-vector-mcp-macos-apple-silicon
+            binary_name: devrag-macos-apple-silicon
           # Linux builds
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
-            binary_name: markdown-vector-mcp-linux-x64
+            binary_name: devrag-linux-x64
           - os: ubuntu-latest
             goos: linux
             goarch: arm64
-            binary_name: markdown-vector-mcp-linux-arm64
+            binary_name: devrag-linux-arm64
           # Windows builds
           - os: windows-latest
             goos: windows
             goarch: amd64
-            binary_name: markdown-vector-mcp-windows-x64.exe
+            binary_name: devrag-windows-x64.exe
 
     steps:
       - name: Checkout code

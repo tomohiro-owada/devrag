@@ -34,10 +34,10 @@ import (
     "os"
 
     "github.com/mark3labs/mcp-go/server"
-    "github.com/towada/markdown-vector-mcp/internal/config"
-    "github.com/towada/markdown-vector-mcp/internal/embedder"
-    "github.com/towada/markdown-vector-mcp/internal/indexer"
-    "github.com/towada/markdown-vector-mcp/internal/vectordb"
+    "github.com/towada/devrag/internal/config"
+    "github.com/towada/devrag/internal/embedder"
+    "github.com/towada/devrag/internal/indexer"
+    "github.com/towada/devrag/internal/vectordb"
 )
 
 type MCPServer struct {
@@ -64,7 +64,7 @@ func (s *MCPServer) Start() error {
 
     // Create MCP server
     s.server = server.NewMCPServer(
-        "markdown-vector-mcp",
+        "devrag",
         "1.0.0",
     )
 
@@ -364,11 +364,11 @@ import (
     "fmt"
     "os"
 
-    "github.com/towada/markdown-vector-mcp/internal/config"
-    "github.com/towada/markdown-vector-mcp/internal/embedder"
-    "github.com/towada/markdown-vector-mcp/internal/indexer"
-    "github.com/towada/markdown-vector-mcp/internal/mcp"
-    "github.com/towada/markdown-vector-mcp/internal/vectordb"
+    "github.com/towada/devrag/internal/config"
+    "github.com/towada/devrag/internal/embedder"
+    "github.com/towada/devrag/internal/indexer"
+    "github.com/towada/devrag/internal/mcp"
+    "github.com/towada/devrag/internal/vectordb"
 )
 
 func main() {
@@ -442,7 +442,7 @@ func main() {
 ### 1. バイナリをビルド
 
 ```bash
-go build -o markdown-vector-mcp cmd/main.go
+go build -o devrag cmd/main.go
 ```
 
 ### 2. Claude Code設定
@@ -451,8 +451,8 @@ go build -o markdown-vector-mcp cmd/main.go
 ```json
 {
   "mcpServers": {
-    "markdown-vector": {
-      "command": "/path/to/markdown-vector-mcp"
+    "devrag": {
+      "command": "/path/to/devrag"
     }
   }
 }

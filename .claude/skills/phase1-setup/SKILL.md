@@ -5,7 +5,7 @@ description: Phase 1基盤構築を実装。Goプロジェクト初期化、設�
 
 # Phase 1: 基盤構築
 
-markdown-vector-mcpプロジェクトの基礎インフラを構築します。
+devragプロジェクトの基礎インフラを構築します。
 
 ## タスク一覧
 
@@ -13,12 +13,12 @@ markdown-vector-mcpプロジェクトの基礎インフラを構築します。
 
 **実行コマンド**:
 ```bash
-go mod init github.com/towada/markdown-vector-mcp
+go mod init github.com/towada/devrag
 ```
 
 **ディレクトリ構成作成**:
 ```
-markdown-vector-mcp/
+devrag/
 ├── cmd/
 │   └── main.go
 ├── internal/
@@ -35,7 +35,7 @@ markdown-vector-mcp/
 **.gitignore**:
 ```
 # Binaries
-markdown-vector-mcp
+devrag
 *.exe
 
 # Build output

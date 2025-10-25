@@ -8,7 +8,7 @@ BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 echo "================================="
-echo "Building markdown-vector-mcp"
+echo "Building devrag"
 echo "================================="
 echo "Version: $VERSION"
 echo "Build Time: $BUILD_TIME"
@@ -30,7 +30,7 @@ build_platform() {
   local goarch=$2
   local ext=$3
 
-  local output_name="markdown-vector-mcp-${goos}-${goarch}${ext}"
+  local output_name="devrag-${goos}-${goarch}${ext}"
   echo "Building for ${goos}/${goarch}..."
 
   CGO_ENABLED=1 GOOS=$goos GOARCH=$goarch go build \
