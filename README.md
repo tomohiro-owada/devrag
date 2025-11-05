@@ -92,7 +92,11 @@ Create `config.json`:
 
 ```json
 {
-  "documents_dir": "./documents",
+  "document_patterns": [
+    "./documents",
+    "./notes/**/*.md",
+    "./projects/backend/**/*.md"
+  ],
   "db_path": "./vectors.db",
   "chunk_size": 500,
   "search_top_k": 5,
@@ -109,7 +113,11 @@ Create `config.json`:
 
 ### Configuration Options
 
-- `documents_dir`: Directory containing markdown files
+- `document_patterns`: Array of document paths and glob patterns
+  - Supports directory paths: `"./documents"`
+  - Supports glob patterns: `"./docs/**/*.md"` (recursive)
+  - Multiple patterns: Index files from different locations
+  - **Note**: Old `documents_dir` field is still supported (automatically migrated)
 - `db_path`: Vector database file path
 - `chunk_size`: Document chunk size in characters
 - `search_top_k`: Number of search results to return
@@ -117,6 +125,19 @@ Create `config.json`:
 - `compute.fallback_to_cpu`: Fallback to CPU if GPU unavailable
 - `model.name`: Embedding model name
 - `model.dimensions`: Vector dimensions
+
+### Pattern Examples
+
+```json
+{
+  "document_patterns": [
+    "./documents",                    // All .md files in documents/
+    "./notes/**/*.md",                // Recursive search in notes/
+    "./projects/*/docs/*.md",         // docs/ in each project
+    "/path/to/external/docs"          // Absolute path
+  ]
+}
+```
 
 ## MCP Tools
 
@@ -168,7 +189,11 @@ Configure for your project's docs directory:
 
 ```json
 {
-  "documents_dir": "./docs",
+  "document_patterns": [
+    "./docs",
+    "./api-docs/**/*.md",
+    "./wiki/**/*.md"
+  ],
   "db_path": "./.devrag/vectors.db"
 }
 ```
@@ -415,7 +440,11 @@ Claude Codeで：
 
 ```json
 {
-  "documents_dir": "./documents",
+  "document_patterns": [
+    "./documents",
+    "./notes/**/*.md",
+    "./projects/backend/**/*.md"
+  ],
   "db_path": "./vectors.db",
   "chunk_size": 500,
   "search_top_k": 5,
@@ -432,7 +461,11 @@ Claude Codeで：
 
 ### 設定項目
 
-- `documents_dir`: マークダウンファイルを配置するディレクトリ
+- `document_patterns`: ドキュメントのパスとglobパターンの配列
+  - ディレクトリパス対応: `"./documents"`
+  - globパターン対応: `"./docs/**/*.md"` (再帰的)
+  - 複数パターン: 異なる場所からファイルをインデックス化
+  - **注意**: 旧形式の`documents_dir`もサポート（自動的に移行）
 - `db_path`: ベクトルデータベースのパス
 - `chunk_size`: ドキュメントのチャンクサイズ（文字数）
 - `search_top_k`: 検索結果の返却件数
@@ -440,6 +473,19 @@ Claude Codeで：
 - `compute.fallback_to_cpu`: GPU利用不可時にCPUにフォールバック
 - `model.name`: 埋め込みモデル名
 - `model.dimensions`: ベクトル次元数
+
+### パターン例
+
+```json
+{
+  "document_patterns": [
+    "./documents",                    // documents/内の全.mdファイル
+    "./notes/**/*.md",                // notes/内を再帰的に検索
+    "./projects/*/docs/*.md",         // 各プロジェクトのdocs/
+    "/path/to/external/docs"          // 絶対パス
+  ]
+}
+```
 
 ## MCPツール
 
@@ -491,7 +537,11 @@ Model Context Protocolを通じて以下のツールを提供：
 
 ```json
 {
-  "documents_dir": "./docs",
+  "document_patterns": [
+    "./docs",
+    "./api-docs/**/*.md",
+    "./wiki/**/*.md"
+  ],
   "db_path": "./.devrag/vectors.db"
 }
 ```
