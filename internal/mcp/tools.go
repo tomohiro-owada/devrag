@@ -79,7 +79,7 @@ func (s *MCPServer) handleIndexMarkdown(ctx context.Context, request mcp.CallToo
 	}
 
 	// Validate path (prevent path traversal)
-	if err := validatePath(filePath, s.config.DocumentsDir); err != nil {
+	if err := validatePath(filePath, s.config.GetBaseDirectories()); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
 	}
 
@@ -149,9 +149,8 @@ func (s *MCPServer) handleDeleteDocument(ctx context.Context, request mcp.CallTo
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete from database: %v", err)), nil
 	}
 
-	// Delete file
-	filePath := filepath.Join(s.config.DocumentsDir, filename)
-	if err := os.Remove(filePath); err != nil {
+	// Delete file (filename is the full path)
+	if err := os.Remove(filename); err != nil {
 		fmt.Fprintf(os.Stderr, "[WARN] Failed to delete file: %v\n", err)
 	}
 
@@ -186,9 +185,8 @@ func (s *MCPServer) handleReindexDocument(ctx context.Context, request mcp.CallT
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete document: %v", err)), nil
 	}
 
-	// Reindex
-	filePath := filepath.Join(s.config.DocumentsDir, filename)
-	if err := s.indexer.IndexFile(filePath); err != nil {
+	// Reindex (filename is the full path)
+	if err := s.indexer.IndexFile(filename); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to reindex: %v", err)), nil
 	}
 
@@ -234,7 +232,7 @@ func (s *MCPServer) handleAddFrontmatter(ctx context.Context, request mcp.CallTo
 	}
 
 	// Validate path
-	if err := validatePath(filePath, s.config.DocumentsDir); err != nil {
+	if err := validatePath(filePath, s.config.GetBaseDirectories()); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
 	}
 
@@ -306,7 +304,7 @@ func (s *MCPServer) handleUpdateFrontmatter(ctx context.Context, request mcp.Cal
 	}
 
 	// Validate path
-	if err := validatePath(filePath, s.config.DocumentsDir); err != nil {
+	if err := validatePath(filePath, s.config.GetBaseDirectories()); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
 	}
 
@@ -343,26 +341,31 @@ func (s *MCPServer) handleUpdateFrontmatter(ctx context.Context, request mcp.Cal
 }
 
 // validatePath prevents path traversal attacks
-func validatePath(filePath, baseDir string) error {
+// It checks if the file is within any of the configured base directories
+func validatePath(filePath string, baseDirs []string) error {
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return err
 	}
 
-	absBase, err := filepath.Abs(baseDir)
-	if err != nil {
-		return err
+	// Check if path is within any of the base directories
+	for _, baseDir := range baseDirs {
+		absBase, err := filepath.Abs(baseDir)
+		if err != nil {
+			continue
+		}
+
+		relPath, err := filepath.Rel(absBase, absPath)
+		if err != nil {
+			continue
+		}
+
+		// Check if path escapes base directory
+		if len(relPath) > 0 && relPath[0] != '.' {
+			// Path is within this base directory
+			return nil
+		}
 	}
 
-	relPath, err := filepath.Rel(absBase, absPath)
-	if err != nil {
-		return err
-	}
-
-	// Check if path escapes base directory
-	if len(relPath) > 0 && relPath[0] == '.' {
-		return fmt.Errorf("path traversal detected: %s", filePath)
-	}
-
-	return nil
+	return fmt.Errorf("path not within any configured document directory: %s", filePath)
 }
