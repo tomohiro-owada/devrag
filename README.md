@@ -70,6 +70,19 @@ Add to `~/.claude.json` or `.mcp.json`:
 }
 ```
 
+**Using a custom config file:**
+```json
+{
+  "mcpServers": {
+    "devrag": {
+      "type": "stdio",
+      "command": "/usr/local/bin/devrag",
+      "args": ["--config", "/path/to/custom-config.json"]
+    }
+  }
+}
+```
+
 ### 3. Add Your Documents
 
 ```bash
@@ -117,6 +130,20 @@ Create `config.json`:
 - `compute.fallback_to_cpu`: Fallback to CPU if GPU unavailable
 - `model.name`: Embedding model name
 - `model.dimensions`: Vector dimensions
+
+### Command-Line Options
+
+- `--config <path>`: Specify a custom configuration file path (default: `config.json`)
+
+**Example:**
+```bash
+devrag --config /path/to/custom-config.json
+```
+
+This is useful for:
+- Running multiple instances with different configurations
+- Testing different models or chunk sizes
+- Maintaining separate dev/test/prod configurations
 
 ## MCP Tools
 
@@ -393,6 +420,19 @@ sudo mv devrag-* /usr/local/bin/devrag
 }
 ```
 
+**カスタム設定ファイルを使用する場合:**
+```json
+{
+  "mcpServers": {
+    "devrag": {
+      "type": "stdio",
+      "command": "/usr/local/bin/devrag",
+      "args": ["--config", "/path/to/custom-config.json"]
+    }
+  }
+}
+```
+
 ### 3. ドキュメントを配置
 
 ```bash
@@ -440,6 +480,20 @@ Claude Codeで：
 - `compute.fallback_to_cpu`: GPU利用不可時にCPUにフォールバック
 - `model.name`: 埋め込みモデル名
 - `model.dimensions`: ベクトル次元数
+
+### コマンドラインオプション
+
+- `--config <path>`: カスタム設定ファイルのパスを指定（デフォルト: `config.json`）
+
+**使用例:**
+```bash
+devrag --config /path/to/custom-config.json
+```
+
+これは以下の用途で便利です：
+- 異なる設定で複数のインスタンスを実行
+- 異なるモデルやチャンクサイズをテスト
+- 開発/テスト/本番環境の設定を分離
 
 ## MCPツール
 
