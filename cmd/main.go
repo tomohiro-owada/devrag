@@ -27,6 +27,9 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "[INFO] DevRag v%s starting...\n", version.Version)
 
+	// Check for updates (synchronous, shown immediately after startup message)
+	updater.CheckForUpdate(version.Version, "")
+
 	// 1. Load configuration
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -45,11 +48,6 @@ func main() {
 	fmt.Fprintf(os.Stderr, "[INFO] Database path: %s\n", cfg.DBPath)
 	fmt.Fprintf(os.Stderr, "[INFO] Model: %s (dimensions: %d)\n", cfg.Model.Name, cfg.Model.Dimensions)
 	fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
-
-	// Check for updates (non-blocking, runs in background)
-	if cfg.IsUpdateCheckEnabled() {
-		go updater.CheckForUpdate(version.Version, "")
-	}
 
 	// 2. Download model files if needed
 	modelDir := "models"

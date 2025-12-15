@@ -192,10 +192,33 @@ func parseVersion(version string) ([]int, error) {
 	return result, nil
 }
 
+// ANSI color codes
+const (
+	colorReset  = "\033[0m"
+	colorYellow = "\033[33m"
+	colorCyan   = "\033[36m"
+	colorBold   = "\033[1m"
+)
+
 func printUpdateNotice(current, latest string) {
+	msg := fmt.Sprintf("New version available: v%s (current: v%s)", latest, current)
+	url := "https://github.com/tomohiro-owada/devrag/releases/latest"
+
+	// Calculate box width
+	width := len(msg)
+	if len(url) > width {
+		width = len(url)
+	}
+	width += 4 // padding
+
+	// Build horizontal border
+	border := strings.Repeat("═", width)
+
 	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "[UPDATE] New version available: v%s (current: v%s)\n", latest, current)
-	fmt.Fprintf(os.Stderr, "[UPDATE] https://github.com/tomohiro-owada/devrag/releases/latest\n")
+	fmt.Fprintf(os.Stderr, "%s%s╔%s╗%s\n", colorBold, colorYellow, border, colorReset)
+	fmt.Fprintf(os.Stderr, "%s%s║  %-*s  ║%s\n", colorBold, colorYellow, width-4, msg, colorReset)
+	fmt.Fprintf(os.Stderr, "%s%s║  %s%-*s%s  %s║%s\n", colorBold, colorYellow, colorCyan, width-4, url, colorYellow, colorBold, colorReset)
+	fmt.Fprintf(os.Stderr, "%s%s╚%s╝%s\n", colorBold, colorYellow, border, colorReset)
 	fmt.Fprintf(os.Stderr, "\n")
 }
 
