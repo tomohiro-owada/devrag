@@ -52,9 +52,9 @@ func (s *MCPServer) handleSearch(ctx context.Context, request mcp.CallToolReques
 			Directory:   directory,
 			FilePattern: filePattern,
 		}
-		fmt.Fprintf(os.Stderr, "[INFO] Search query: %s (top_k=%d, dir=%q, pattern=%q)\n", query, topK, directory, filePattern)
+		fmt.Fprintf(os.Stderr, "[INFO] Search request (top_k=%d, filtered=true)\n", topK)
 	} else {
-		fmt.Fprintf(os.Stderr, "[INFO] Search query: %s (top_k=%d)\n", query, topK)
+		fmt.Fprintf(os.Stderr, "[INFO] Search request (top_k=%d)\n", topK)
 	}
 
 	// Vectorize query
