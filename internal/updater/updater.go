@@ -32,6 +32,67 @@ type UpdateCache struct {
 	NotifiedVersion string    `json:"notified_version"`
 }
 
+// UpdateInfo contains information about available update
+type UpdateInfo struct {
+	Available      bool   `json:"available"`
+	CurrentVersion string `json:"current_version"`
+	LatestVersion  string `json:"latest_version"`
+	URL            string `json:"url"`
+}
+
+// GetUpdateInfo checks for updates and returns info (for MCP response)
+// Returns nil if no update available or check was done recently
+func GetUpdateInfo(currentVersion string, cacheDir string) *UpdateInfo {
+	debug := os.Getenv("DEVRAG_DEBUG") != ""
+
+	cache, err := loadCache(cacheDir)
+	if err != nil && debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Failed to load update cache: %v\n", err)
+	}
+
+	// Check if we should notify (24h since last notification)
+	if cache.NotifiedVersion != "" && time.Since(cache.LastCheck) < time.Duration(CheckIntervalHrs)*time.Hour {
+		return nil // Already notified recently
+	}
+
+	// Fetch latest release
+	release, err := fetchLatestRelease()
+	if err != nil {
+		if debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Failed to fetch latest release: %v\n", err)
+		}
+		return nil
+	}
+
+	latestVersion, err := normalizeVersion(release.TagName)
+	if err != nil {
+		if debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Invalid version tag %q: %v\n", release.TagName, err)
+		}
+		return nil
+	}
+
+	newer, err := isNewerVersion(latestVersion, currentVersion)
+	if err != nil || !newer {
+		return nil
+	}
+
+	// Update cache to mark as notified
+	cache.LastCheck = time.Now()
+	cache.LatestVersion = latestVersion
+	cache.NotifiedVersion = latestVersion
+	if err := saveCache(cacheDir, cache); err != nil && debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Failed to save update cache: %v\n", err)
+	}
+
+	return &UpdateInfo{
+		Available:      true,
+		CurrentVersion: currentVersion,
+		LatestVersion:  latestVersion,
+		URL:            "https://github.com/tomohiro-owada/devrag/releases/latest",
+	}
+}
+
 // CheckForUpdate checks GitHub for a newer version
 // Errors are logged to stderr with debug context when DEVRAG_DEBUG is set
 func CheckForUpdate(currentVersion string, cacheDir string) {

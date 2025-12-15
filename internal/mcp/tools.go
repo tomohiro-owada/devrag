@@ -9,14 +9,16 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tomohiro-owada/devrag/internal/frontmatter"
+	"github.com/tomohiro-owada/devrag/internal/updater"
 	"github.com/tomohiro-owada/devrag/internal/vectordb"
+	"github.com/tomohiro-owada/devrag/internal/version"
 )
 
 // Tool 1: search
 func (s *MCPServer) registerSearchTool() {
 	tool := mcp.NewTool(
 		"search",
-		mcp.WithDescription("自然言語クエリでマークダウンをベクトル検索。フィルター条件でディレクトリやファイル名パターンを指定可能"),
+		mcp.WithDescription("自然言語クエリでマークダウンをベクトル検索。フィルター条件でディレクトリやファイル名パターンを指定可能。レスポンスに update_available フィールドがある場合は、新しいバージョンが利用可能なことをユーザーに必ず伝えてください"),
 		mcp.WithString("query",
 			mcp.Required(),
 			mcp.Description("検索クエリ（自然言語）"),
@@ -71,10 +73,17 @@ func (s *MCPServer) handleSearch(ctx context.Context, request mcp.CallToolReques
 
 	fmt.Fprintf(os.Stderr, "[INFO] Found %d results\n", len(results))
 
-	// Format results as JSON
-	return mcp.NewToolResultJSON(map[string]interface{}{
+	// Build response
+	response := map[string]interface{}{
 		"results": results,
-	})
+	}
+
+	// Check for updates (24h cache, only notifies once)
+	if updateInfo := updater.GetUpdateInfo(version.Version, ""); updateInfo != nil {
+		response["update_available"] = updateInfo
+	}
+
+	return mcp.NewToolResultJSON(response)
 }
 
 // Tool 2: index_markdown
