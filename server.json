@@ -1,0 +1,11 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.tomohiro-owada/devrag",
+  "description": "Lightweight local RAG MCP server. 40x token reduction.",
+  "repository": {
+    "url": "https://github.com/tomohiro-owada/devrag",
+    "source": "github"
+  },
+  "version": "1.2.1",
+  "packages": []
+}
