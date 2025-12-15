@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-15
+
+### Added
+- **Filtered search** - New parameters for the `search` tool
+  - `directory`: Filter results to specific directory (e.g., "docs/api")
+  - `file_pattern`: Filter by filename glob pattern (e.g., "api-*.md")
+  - `top_k`: Control maximum number of results
+- **Multiple document paths** - Support for multiple document directories with glob patterns
+  - Configure via `document_patterns` array in config.json
+  - Supports recursive patterns like `./docs/**/*.md`
+  - Backward compatible with old `documents_dir` field
+- **Custom config file** - `--config` CLI flag to specify configuration file path
+- **CLAUDE.md** - Comprehensive project guide for Claude Code
+- **Contributors section** - Added to README to acknowledge community contributions
+
+### Fixed
+- **Security: Info leak** - Removed user input (query, directory, file_pattern) from stderr logs
+
+### Changed
+- Improved README documentation with filtered search examples
+- Updated MCP tool descriptions
+
+### Contributors
+- [@badri](https://github.com/badri) - Multiple document paths (#2), --config CLI flag (#3)
+- [@io41](https://github.com/io41) - Project cleanup (#4)
+
 ## [1.1.0] - 2024-10-25
 
 ### Changed
