@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "devrag": {
-      "type": "stdio",
-      "command": "/Users/towada/projects/devrag/bin/devrag-darwin-arm64"
-    }
-  }
-}

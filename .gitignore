@@ -29,6 +29,9 @@ models/tokenizer.json
 *.swp
 *.swo
 
+# Claude Code user settings
+.mcp.json
+
 # OS
 .DS_Store
 Thumbs.db
