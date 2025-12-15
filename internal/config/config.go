@@ -15,6 +15,7 @@ type Config struct {
 	DBPath           string   `json:"db_path"`
 	ChunkSize        int      `json:"chunk_size"`
 	SearchTopK       int      `json:"search_top_k"`
+	UpdateCheck      *bool    `json:"update_check,omitempty"`
 	Compute          struct {
 		Device        string `json:"device"`
 		FallbackToCPU bool   `json:"fallback_to_cpu"`
@@ -23,6 +24,14 @@ type Config struct {
 		Name       string `json:"name"`
 		Dimensions int    `json:"dimensions"`
 	} `json:"model"`
+}
+
+// IsUpdateCheckEnabled returns whether update checking is enabled (default: true)
+func (c *Config) IsUpdateCheckEnabled() bool {
+	if c.UpdateCheck == nil {
+		return true
+	}
+	return *c.UpdateCheck
 }
 
 // DefaultConfig returns default configuration

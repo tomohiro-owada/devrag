@@ -9,15 +9,23 @@ import (
 	"github.com/tomohiro-owada/devrag/internal/embedder"
 	"github.com/tomohiro-owada/devrag/internal/indexer"
 	"github.com/tomohiro-owada/devrag/internal/mcp"
+	"github.com/tomohiro-owada/devrag/internal/updater"
 	"github.com/tomohiro-owada/devrag/internal/vectordb"
+	"github.com/tomohiro-owada/devrag/internal/version"
 )
 
 func main() {
 	// Parse command-line flags
 	configPath := flag.String("config", "config.json", "path to configuration file")
+	showVersion := flag.Bool("version", false, "show version and exit")
 	flag.Parse()
 
-	fmt.Fprintf(os.Stderr, "[INFO] DevRag starting...\n")
+	if *showVersion {
+		fmt.Printf("devrag version %s\n", version.Version)
+		os.Exit(0)
+	}
+
+	fmt.Fprintf(os.Stderr, "[INFO] DevRag v%s starting...\n", version.Version)
 
 	// 1. Load configuration
 	cfg, err := config.Load(*configPath)
@@ -37,6 +45,11 @@ func main() {
 	fmt.Fprintf(os.Stderr, "[INFO] Database path: %s\n", cfg.DBPath)
 	fmt.Fprintf(os.Stderr, "[INFO] Model: %s (dimensions: %d)\n", cfg.Model.Name, cfg.Model.Dimensions)
 	fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
+
+	// Check for updates (non-blocking, runs in background)
+	if cfg.IsUpdateCheckEnabled() {
+		go updater.CheckForUpdate(version.Version, "")
+	}
 
 	// 2. Download model files if needed
 	modelDir := "models"

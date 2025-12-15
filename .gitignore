@@ -32,6 +32,9 @@ models/tokenizer.json
 # Claude Code user settings
 .mcp.json
 
+# MCP Registry tokens
+.mcpregistry_*
+
 # OS
 .DS_Store
 Thumbs.db
