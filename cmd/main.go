@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -12,10 +13,14 @@ import (
 )
 
 func main() {
+	// Parse command-line flags
+	configPath := flag.String("config", "config.json", "path to configuration file")
+	flag.Parse()
+
 	fmt.Fprintf(os.Stderr, "[INFO] DevRag starting...\n")
 
 	// 1. Load configuration
-	cfg, err := config.Load()
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Failed to load config: %v\n", err)
 		os.Exit(1)

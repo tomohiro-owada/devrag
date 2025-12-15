@@ -14,7 +14,7 @@ func TestLoadConfig_NoFile(t *testing.T) {
 
 	os.Chdir(tmpDir)
 
-	cfg, err := Load()
+	cfg, err := Load("")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -76,7 +76,7 @@ func TestLoadConfig_Valid(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load()
+	cfg, err := Load("")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -245,6 +245,33 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_CustomPath(t *testing.T) {
+	// Create temporary directory for testing
+	tmpDir := t.TempDir()
+
+	// Create custom config file
+	customConfigPath := tmpDir + "/custom-config.json"
+	testConfig := `{
+  "documents_dir": "./custom_docs",
+  "db_path": "./custom.db",
+  "chunk_size": 1000,
+  "search_top_k": 20,
+  "compute": {
+    "device": "cuda",
+    "fallback_to_cpu": true
+  },
+  "model": {
+    "name": "custom-model",
+    "dimensions": 512
+  }
+}`
+
+	if err := os.WriteFile(customConfigPath, []byte(testConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Load with custom path
+	cfg, err := Load(customConfigPath)
 func TestLoadConfig_BackwardsCompatibility(t *testing.T) {
 	// Test that old documents_dir format is migrated to document_patterns
 	tmpDir := t.TempDir()
@@ -278,6 +305,126 @@ func TestLoadConfig_BackwardsCompatibility(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
+	// Verify custom values are loaded
+	if cfg.DocumentsDir != "./custom_docs" {
+		t.Errorf("Expected documents_dir './custom_docs', got %s", cfg.DocumentsDir)
+	}
+
+	if cfg.DBPath != "./custom.db" {
+		t.Errorf("Expected db_path './custom.db', got %s", cfg.DBPath)
+	}
+
+	if cfg.ChunkSize != 1000 {
+		t.Errorf("Expected chunk_size 1000, got %d", cfg.ChunkSize)
+	}
+
+	if cfg.SearchTopK != 20 {
+		t.Errorf("Expected search_top_k 20, got %d", cfg.SearchTopK)
+	}
+
+	if cfg.Compute.Device != "cuda" {
+		t.Errorf("Expected device 'cuda', got %s", cfg.Compute.Device)
+	}
+
+	if cfg.Model.Name != "custom-model" {
+		t.Errorf("Expected model name 'custom-model', got %s", cfg.Model.Name)
+	}
+
+	if cfg.Model.Dimensions != 512 {
+		t.Errorf("Expected dimensions 512, got %d", cfg.Model.Dimensions)
+	}
+}
+
+func TestLoadConfig_CustomPath_NotFound(t *testing.T) {
+	// Test loading from non-existent custom path
+	cfg, err := Load("/nonexistent/path/config.json")
+	if err != nil {
+		t.Fatalf("Expected no error (should return defaults), got %v", err)
+	}
+
+	// Should return default config when file doesn't exist
+	if cfg.DocumentsDir != "./documents" {
+		t.Errorf("Expected default documents_dir, got %s", cfg.DocumentsDir)
+	}
+
+	if cfg.ChunkSize != 500 {
+		t.Errorf("Expected default chunk_size 500, got %d", cfg.ChunkSize)
+	}
+}
+
+func TestLoadConfig_CustomPath_InvalidJSON(t *testing.T) {
+	// Create temporary directory for testing
+	tmpDir := t.TempDir()
+
+	// Create invalid config file
+	customConfigPath := tmpDir + "/invalid-config.json"
+	invalidJSON := `{
+  "documents_dir": "./docs",
+  "invalid json here
+}`
+
+	if err := os.WriteFile(customConfigPath, []byte(invalidJSON), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Should return default config and not error
+	cfg, err := Load(customConfigPath)
+	if err != nil {
+		t.Fatalf("Expected no error (should fallback to defaults), got %v", err)
+	}
+
+	// Should have default values due to fallback
+	if cfg.DocumentsDir != "./documents" {
+		t.Errorf("Expected default documents_dir, got %s", cfg.DocumentsDir)
+	}
+}
+
+func TestLoadConfig_RelativeAndAbsolutePaths(t *testing.T) {
+	// Create temporary directory for testing
+	tmpDir := t.TempDir()
+
+	testConfig := `{
+  "documents_dir": "./test_docs",
+  "db_path": "./test.db",
+  "chunk_size": 700,
+  "search_top_k": 15
+}`
+
+	// Test with relative path
+	relPath := "test-relative-config.json"
+	fullPath := tmpDir + "/" + relPath
+
+	if err := os.WriteFile(fullPath, []byte(testConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	originalDir, _ := os.Getwd()
+	defer os.Chdir(originalDir)
+	os.Chdir(tmpDir)
+
+	cfg, err := Load(relPath)
+	if err != nil {
+		t.Fatalf("Expected no error with relative path, got %v", err)
+	}
+
+	if cfg.ChunkSize != 700 {
+		t.Errorf("Expected chunk_size 700, got %d", cfg.ChunkSize)
+	}
+
+	// Test with absolute path
+	absPath := tmpDir + "/test-absolute-config.json"
+	if err := os.WriteFile(absPath, []byte(testConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err = Load(absPath)
+	if err != nil {
+		t.Fatalf("Expected no error with absolute path, got %v", err)
+	}
+
+	if cfg.ChunkSize != 700 {
+		t.Errorf("Expected chunk_size 700 from absolute path, got %d", cfg.ChunkSize)
+	}
 	// Verify migration
 	if len(cfg.DocumentPatterns) != 1 {
 		t.Errorf("Expected 1 document pattern after migration, got %d", len(cfg.DocumentPatterns))
