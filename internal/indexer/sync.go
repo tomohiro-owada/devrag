@@ -39,31 +39,25 @@ func (idx *Indexer) Sync() (*SyncResult, error) {
 		dbFileMap[filename] = modTime
 	}
 
-	// Step 2: Scan filesystem (filepath -> mtime)
+	// Step 2: Scan filesystem using document patterns
 	fsFiles := make(map[string]time.Time)
-	err = filepath.Walk(idx.config.DocumentsDir, func(path string, info os.FileInfo, err error) error {
+
+	// Get all markdown files matching the configured patterns
+	matchedFiles, err := idx.config.GetDocumentFiles()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get document files: %w", err)
+	}
+
+	// Get modification times for all matched files
+	for _, path := range matchedFiles {
+		info, err := os.Stat(path)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[WARN] Error accessing %s: %v\n", path, err)
-			return nil // Continue walking despite errors
-		}
-
-		// Skip directories
-		if info.IsDir() {
-			return nil
-		}
-
-		// Only process markdown files
-		if filepath.Ext(path) != ".md" {
-			return nil
+			continue
 		}
 
 		// Store file path and modification time
 		fsFiles[path] = info.ModTime()
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan filesystem: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "[INFO] Found %d markdown files in filesystem\n", len(fsFiles))

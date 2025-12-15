@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -18,8 +19,8 @@ func TestLoadConfig_NoFile(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if cfg.DocumentsDir != "./documents" {
-		t.Errorf("Expected default documents_dir, got %s", cfg.DocumentsDir)
+	if len(cfg.DocumentPatterns) != 1 || cfg.DocumentPatterns[0] != "./documents" {
+		t.Errorf("Expected default document_patterns [./documents], got %v", cfg.DocumentPatterns)
 	}
 
 	if cfg.ChunkSize != 500 {
@@ -57,7 +58,7 @@ func TestLoadConfig_Valid(t *testing.T) {
 
 	// Create test config
 	testConfig := `{
-  "documents_dir": "./test_docs",
+  "document_patterns": ["./test_docs", "./other_docs/**/*.md"],
   "db_path": "./test.db",
   "chunk_size": 300,
   "search_top_k": 10,
@@ -80,8 +81,14 @@ func TestLoadConfig_Valid(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if cfg.DocumentsDir != "./test_docs" {
-		t.Errorf("Expected documents_dir './test_docs', got %s", cfg.DocumentsDir)
+	if len(cfg.DocumentPatterns) != 2 {
+		t.Errorf("Expected 2 document patterns, got %d", len(cfg.DocumentPatterns))
+	}
+	if cfg.DocumentPatterns[0] != "./test_docs" {
+		t.Errorf("Expected first pattern './test_docs', got %s", cfg.DocumentPatterns[0])
+	}
+	if cfg.DocumentPatterns[1] != "./other_docs/**/*.md" {
+		t.Errorf("Expected second pattern './other_docs/**/*.md', got %s", cfg.DocumentPatterns[1])
 	}
 
 	if cfg.DBPath != "./test.db" {
@@ -224,8 +231,8 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	// Verify all default values
-	if cfg.DocumentsDir != "./documents" {
-		t.Errorf("Wrong default documents_dir: %s", cfg.DocumentsDir)
+	if len(cfg.DocumentPatterns) != 1 || cfg.DocumentPatterns[0] != "./documents" {
+		t.Errorf("Wrong default document_patterns: %v", cfg.DocumentPatterns)
 	}
 	if cfg.DBPath != "./vectors.db" {
 		t.Errorf("Wrong default db_path: %s", cfg.DBPath)
@@ -236,4 +243,188 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.SearchTopK != 5 {
 		t.Errorf("Wrong default search_top_k: %d", cfg.SearchTopK)
 	}
+}
+
+func TestLoadConfig_BackwardsCompatibility(t *testing.T) {
+	// Test that old documents_dir format is migrated to document_patterns
+	tmpDir := t.TempDir()
+	originalDir, _ := os.Getwd()
+	defer os.Chdir(originalDir)
+
+	os.Chdir(tmpDir)
+
+	// Create test config with old format
+	oldConfig := `{
+  "documents_dir": "./old_docs",
+  "db_path": "./test.db",
+  "chunk_size": 300,
+  "search_top_k": 10,
+  "compute": {
+    "device": "cpu",
+    "fallback_to_cpu": false
+  },
+  "model": {
+    "name": "test-model",
+    "dimensions": 256
+  }
+}`
+
+	if err := os.WriteFile("config.json", []byte(oldConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify migration
+	if len(cfg.DocumentPatterns) != 1 {
+		t.Errorf("Expected 1 document pattern after migration, got %d", len(cfg.DocumentPatterns))
+	}
+	if cfg.DocumentPatterns[0] != "./old_docs" {
+		t.Errorf("Expected pattern './old_docs', got %s", cfg.DocumentPatterns[0])
+	}
+	if cfg.DocumentsDir != "" {
+		t.Errorf("Expected deprecated DocumentsDir to be cleared, got %s", cfg.DocumentsDir)
+	}
+}
+
+func TestGetDocumentFiles(t *testing.T) {
+	// Create temporary test directory structure
+	tmpDir := t.TempDir()
+
+	// Create test files
+	testFiles := []string{
+		"docs/file1.md",
+		"docs/subdir/file2.md",
+		"notes/file3.md",
+		"other/file4.txt", // not markdown
+	}
+
+	for _, file := range testFiles {
+		fullPath := filepath.Join(tmpDir, file)
+		dir := filepath.Dir(fullPath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(fullPath, []byte("# Test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	tests := []struct {
+		name            string
+		patterns        []string
+		expectedCount   int
+		shouldContain   []string
+		shouldNotContain []string
+	}{
+		{
+			name:          "single directory pattern",
+			patterns:      []string{tmpDir + "/docs"},
+			expectedCount: 2,
+			shouldContain: []string{"file1.md", "file2.md"},
+		},
+		{
+			name:          "glob pattern with **",
+			patterns:      []string{tmpDir + "/docs/**/*.md"},
+			expectedCount: 2,
+			shouldContain: []string{"file1.md", "file2.md"},
+		},
+		{
+			name:          "multiple patterns",
+			patterns:      []string{tmpDir + "/docs", tmpDir + "/notes"},
+			expectedCount: 3,
+			shouldContain: []string{"file1.md", "file2.md", "file3.md"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				DocumentPatterns: tt.patterns,
+			}
+
+			files, err := cfg.GetDocumentFiles()
+			if err != nil {
+				t.Fatalf("GetDocumentFiles failed: %v", err)
+			}
+
+			if len(files) != tt.expectedCount {
+				t.Errorf("Expected %d files, got %d: %v", tt.expectedCount, len(files), files)
+			}
+
+			// Check that expected files are present
+			for _, expected := range tt.shouldContain {
+				found := false
+				for _, file := range files {
+					if contains(file, expected) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("Expected to find file containing '%s', but it was not found in %v", expected, files)
+				}
+			}
+		})
+	}
+}
+
+func TestGetBaseDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	tests := []struct {
+		name          string
+		patterns      []string
+		expectedCount int
+	}{
+		{
+			name:          "single directory",
+			patterns:      []string{tmpDir + "/docs"},
+			expectedCount: 1,
+		},
+		{
+			name:          "glob pattern",
+			patterns:      []string{tmpDir + "/docs/**/*.md"},
+			expectedCount: 1,
+		},
+		{
+			name:          "multiple patterns with subdirectory",
+			patterns:      []string{tmpDir + "/docs/**/*.md", tmpDir + "/docs/subdir/*.md"},
+			expectedCount: 2, // Different base directories (docs and docs/subdir)
+		},
+		{
+			name:          "multiple patterns different bases",
+			patterns:      []string{tmpDir + "/docs", tmpDir + "/notes"},
+			expectedCount: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				DocumentPatterns: tt.patterns,
+			}
+
+			dirs := cfg.GetBaseDirectories()
+			if len(dirs) != tt.expectedCount {
+				t.Errorf("Expected %d base directories, got %d: %v", tt.expectedCount, len(dirs), dirs)
+			}
+		})
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[len(s)-len(substr):] == substr || s[:len(substr)] == substr || containsMiddle(s, substr)))
+}
+
+func containsMiddle(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
