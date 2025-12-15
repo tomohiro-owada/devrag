@@ -245,33 +245,6 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_CustomPath(t *testing.T) {
-	// Create temporary directory for testing
-	tmpDir := t.TempDir()
-
-	// Create custom config file
-	customConfigPath := tmpDir + "/custom-config.json"
-	testConfig := `{
-  "documents_dir": "./custom_docs",
-  "db_path": "./custom.db",
-  "chunk_size": 1000,
-  "search_top_k": 20,
-  "compute": {
-    "device": "cuda",
-    "fallback_to_cpu": true
-  },
-  "model": {
-    "name": "custom-model",
-    "dimensions": 512
-  }
-}`
-
-	if err := os.WriteFile(customConfigPath, []byte(testConfig), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Load with custom path
-	cfg, err := Load(customConfigPath)
 func TestLoadConfig_BackwardsCompatibility(t *testing.T) {
 	// Test that old documents_dir format is migrated to document_patterns
 	tmpDir := t.TempDir()
@@ -300,14 +273,57 @@ func TestLoadConfig_BackwardsCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := Load()
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify migration
+	if len(cfg.DocumentPatterns) != 1 {
+		t.Errorf("Expected 1 document pattern after migration, got %d", len(cfg.DocumentPatterns))
+	}
+	if cfg.DocumentPatterns[0] != "./old_docs" {
+		t.Errorf("Expected pattern './old_docs', got %s", cfg.DocumentPatterns[0])
+	}
+	if cfg.DocumentsDir != "" {
+		t.Errorf("Expected deprecated DocumentsDir to be cleared, got %s", cfg.DocumentsDir)
+	}
+}
+
+func TestLoadConfig_CustomPath(t *testing.T) {
+	// Create temporary directory for testing
+	tmpDir := t.TempDir()
+
+	// Create custom config file
+	customConfigPath := tmpDir + "/custom-config.json"
+	testConfig := `{
+  "document_patterns": ["./custom_docs"],
+  "db_path": "./custom.db",
+  "chunk_size": 1000,
+  "search_top_k": 20,
+  "compute": {
+    "device": "cuda",
+    "fallback_to_cpu": true
+  },
+  "model": {
+    "name": "custom-model",
+    "dimensions": 512
+  }
+}`
+
+	if err := os.WriteFile(customConfigPath, []byte(testConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Load with custom path
+	cfg, err := Load(customConfigPath)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	// Verify custom values are loaded
-	if cfg.DocumentsDir != "./custom_docs" {
-		t.Errorf("Expected documents_dir './custom_docs', got %s", cfg.DocumentsDir)
+	if len(cfg.DocumentPatterns) != 1 || cfg.DocumentPatterns[0] != "./custom_docs" {
+		t.Errorf("Expected document_patterns ['./custom_docs'], got %v", cfg.DocumentPatterns)
 	}
 
 	if cfg.DBPath != "./custom.db" {
@@ -343,8 +359,8 @@ func TestLoadConfig_CustomPath_NotFound(t *testing.T) {
 	}
 
 	// Should return default config when file doesn't exist
-	if cfg.DocumentsDir != "./documents" {
-		t.Errorf("Expected default documents_dir, got %s", cfg.DocumentsDir)
+	if len(cfg.DocumentPatterns) != 1 || cfg.DocumentPatterns[0] != "./documents" {
+		t.Errorf("Expected default document_patterns, got %v", cfg.DocumentPatterns)
 	}
 
 	if cfg.ChunkSize != 500 {
@@ -359,7 +375,7 @@ func TestLoadConfig_CustomPath_InvalidJSON(t *testing.T) {
 	// Create invalid config file
 	customConfigPath := tmpDir + "/invalid-config.json"
 	invalidJSON := `{
-  "documents_dir": "./docs",
+  "document_patterns": ["./docs"],
   "invalid json here
 }`
 
@@ -374,8 +390,8 @@ func TestLoadConfig_CustomPath_InvalidJSON(t *testing.T) {
 	}
 
 	// Should have default values due to fallback
-	if cfg.DocumentsDir != "./documents" {
-		t.Errorf("Expected default documents_dir, got %s", cfg.DocumentsDir)
+	if len(cfg.DocumentPatterns) != 1 || cfg.DocumentPatterns[0] != "./documents" {
+		t.Errorf("Expected default document_patterns, got %v", cfg.DocumentPatterns)
 	}
 }
 
@@ -384,7 +400,7 @@ func TestLoadConfig_RelativeAndAbsolutePaths(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	testConfig := `{
-  "documents_dir": "./test_docs",
+  "document_patterns": ["./test_docs"],
   "db_path": "./test.db",
   "chunk_size": 700,
   "search_top_k": 15
@@ -424,16 +440,6 @@ func TestLoadConfig_RelativeAndAbsolutePaths(t *testing.T) {
 
 	if cfg.ChunkSize != 700 {
 		t.Errorf("Expected chunk_size 700 from absolute path, got %d", cfg.ChunkSize)
-	}
-	// Verify migration
-	if len(cfg.DocumentPatterns) != 1 {
-		t.Errorf("Expected 1 document pattern after migration, got %d", len(cfg.DocumentPatterns))
-	}
-	if cfg.DocumentPatterns[0] != "./old_docs" {
-		t.Errorf("Expected pattern './old_docs', got %s", cfg.DocumentPatterns[0])
-	}
-	if cfg.DocumentsDir != "" {
-		t.Errorf("Expected deprecated DocumentsDir to be cleared, got %s", cfg.DocumentsDir)
 	}
 }
 

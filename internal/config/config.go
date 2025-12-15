@@ -101,7 +101,7 @@ func Load(configPath string) (*Config, error) {
 		cfg.DocumentPatterns = []string{"./documents"}
 	}
 
-	fmt.Fprintf(os.Stderr, "[INFO] Loaded configuration from %s\n", configFile)
+	fmt.Fprintf(os.Stderr, "[INFO] Loaded configuration from %s\n", configPath)
 	return cfg, nil
 }
 

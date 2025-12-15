@@ -32,7 +32,7 @@ func TestEndToEnd_FirstRun(t *testing.T) {
 
 	// Initialize components
 	cfg := config.DefaultConfig()
-	cfg.DocumentsDir = testDir
+	cfg.DocumentPatterns = []string{testDir}
 	cfg.DBPath = dbPath
 	cfg.ChunkSize = 100
 
@@ -94,7 +94,7 @@ func TestEndToEnd_Reindex(t *testing.T) {
 
 	// Initialize
 	cfg := config.DefaultConfig()
-	cfg.DocumentsDir = testDir
+	cfg.DocumentPatterns = []string{testDir}
 	cfg.DBPath = dbPath
 
 	db, err := vectordb.Init(dbPath)
@@ -165,7 +165,7 @@ func TestEndToEnd_MultipleFiles(t *testing.T) {
 
 	// Initialize
 	cfg := config.DefaultConfig()
-	cfg.DocumentsDir = testDir
+	cfg.DocumentPatterns = []string{testDir}
 	cfg.DBPath = dbPath
 
 	db, err := vectordb.Init(dbPath)
@@ -229,7 +229,7 @@ func TestEndToEnd_DeleteDocument(t *testing.T) {
 
 	// Initialize and index
 	cfg := config.DefaultConfig()
-	cfg.DocumentsDir = testDir
+	cfg.DocumentPatterns = []string{testDir}
 	cfg.DBPath = dbPath
 
 	db, err := vectordb.Init(dbPath)
@@ -302,7 +302,7 @@ func TestEndToEnd_Sync(t *testing.T) {
 
 	// Initialize
 	cfg := config.DefaultConfig()
-	cfg.DocumentsDir = testDir
+	cfg.DocumentPatterns = []string{testDir}
 	cfg.DBPath = dbPath
 
 	db, err := vectordb.Init(dbPath)
@@ -377,7 +377,7 @@ func TestEndToEnd_EmptyDirectory(t *testing.T) {
 
 	// Initialize
 	cfg := config.DefaultConfig()
-	cfg.DocumentsDir = testDir
+	cfg.DocumentPatterns = []string{testDir}
 	cfg.DBPath = dbPath
 
 	db, err := vectordb.Init(dbPath)
