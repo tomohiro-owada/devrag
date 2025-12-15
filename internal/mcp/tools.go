@@ -9,19 +9,26 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tomohiro-owada/devrag/internal/frontmatter"
+	"github.com/tomohiro-owada/devrag/internal/vectordb"
 )
 
 // Tool 1: search
 func (s *MCPServer) registerSearchTool() {
 	tool := mcp.NewTool(
 		"search",
-		mcp.WithDescription("自然言語クエリでマークダウンをベクトル検索"),
+		mcp.WithDescription("自然言語クエリでマークダウンをベクトル検索。フィルター条件でディレクトリやファイル名パターンを指定可能"),
 		mcp.WithString("query",
 			mcp.Required(),
 			mcp.Description("検索クエリ（自然言語）"),
 		),
 		mcp.WithNumber("top_k",
-			mcp.Description("検索結果の最大件数"),
+			mcp.Description("検索結果の最大件数（デフォルト: 5）"),
+		),
+		mcp.WithString("directory",
+			mcp.Description("検索対象ディレクトリを限定（例: 'docs/api' でdocs/api配下のみ検索）"),
+		),
+		mcp.WithString("file_pattern",
+			mcp.Description("ファイル名パターンで絞り込み（glob形式。例: 'api-*.md', '*.md'）"),
 		),
 	)
 
@@ -35,8 +42,20 @@ func (s *MCPServer) handleSearch(ctx context.Context, request mcp.CallToolReques
 	}
 
 	topK := request.GetInt("top_k", s.config.SearchTopK)
+	directory := request.GetString("directory", "")
+	filePattern := request.GetString("file_pattern", "")
 
-	fmt.Fprintf(os.Stderr, "[INFO] Search query: %s (top_k=%d)\n", query, topK)
+	// Build filter if any filter parameters are specified
+	var filter *vectordb.SearchFilter
+	if directory != "" || filePattern != "" {
+		filter = &vectordb.SearchFilter{
+			Directory:   directory,
+			FilePattern: filePattern,
+		}
+		fmt.Fprintf(os.Stderr, "[INFO] Search request (top_k=%d, filtered=true)\n", topK)
+	} else {
+		fmt.Fprintf(os.Stderr, "[INFO] Search request (top_k=%d)\n", topK)
+	}
 
 	// Vectorize query
 	queryVector, err := s.embedder.Embed(query)
@@ -44,8 +63,8 @@ func (s *MCPServer) handleSearch(ctx context.Context, request mcp.CallToolReques
 		return mcp.NewToolResultError(fmt.Sprintf("failed to vectorize query: %v", err)), nil
 	}
 
-	// Search
-	results, err := s.db.Search(queryVector, topK)
+	// Search with optional filter
+	results, err := s.db.SearchWithFilter(queryVector, topK, filter)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("search failed: %v", err)), nil
 	}

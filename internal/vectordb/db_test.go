@@ -410,3 +410,201 @@ func TestDeleteDocument_CascadeChunks(t *testing.T) {
 		t.Errorf("Expected 0 chunks after document deletion, got %d", chunkCount)
 	}
 }
+
+// Helper to insert test document with embedding for search tests
+func insertTestDocForSearch(t *testing.T, db *DB, filename string, content string, embedding []float32) {
+	t.Helper()
+	chunks := []ChunkInterface{
+		testChunk{content: content, position: 0},
+	}
+	embeddings := [][]float32{embedding}
+	err := db.InsertDocument(filename, time.Now(), chunks, embeddings)
+	if err != nil {
+		t.Fatalf("Failed to insert test document %s: %v", filename, err)
+	}
+}
+
+// Create a simple embedding for testing (just fills with a specific value)
+func makeTestEmbedding(seed float32) []float32 {
+	emb := make([]float32, 384)
+	for i := range emb {
+		emb[i] = seed + float32(i)*0.001
+	}
+	return emb
+}
+
+func TestSearchWithFilter_NoFilter(t *testing.T) {
+	dbPath := t.TempDir() + "/test.db"
+
+	db, err := Init(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Insert test documents
+	insertTestDocForSearch(t, db, "docs/api/auth.md", "Authentication API", makeTestEmbedding(0.1))
+	insertTestDocForSearch(t, db, "docs/api/users.md", "Users API", makeTestEmbedding(0.2))
+	insertTestDocForSearch(t, db, "guides/setup.md", "Setup guide", makeTestEmbedding(0.3))
+
+	// Search without filter
+	results, err := db.SearchWithFilter(makeTestEmbedding(0.1), 10, nil)
+	if err != nil {
+		t.Fatalf("SearchWithFilter failed: %v", err)
+	}
+
+	if len(results) != 3 {
+		t.Errorf("Expected 3 results without filter, got %d", len(results))
+	}
+}
+
+func TestSearchWithFilter_DirectoryFilter(t *testing.T) {
+	dbPath := t.TempDir() + "/test.db"
+
+	db, err := Init(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Insert test documents
+	insertTestDocForSearch(t, db, "docs/api/auth.md", "Authentication API", makeTestEmbedding(0.1))
+	insertTestDocForSearch(t, db, "docs/api/users.md", "Users API", makeTestEmbedding(0.2))
+	insertTestDocForSearch(t, db, "guides/setup.md", "Setup guide", makeTestEmbedding(0.3))
+
+	// Search with directory filter
+	filter := &SearchFilter{Directory: "docs/api"}
+	results, err := db.SearchWithFilter(makeTestEmbedding(0.1), 10, filter)
+	if err != nil {
+		t.Fatalf("SearchWithFilter failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results with directory filter 'docs/api', got %d", len(results))
+	}
+
+	// Verify all results are from docs/api
+	for _, r := range results {
+		if !hasPrefix(r.DocumentName, "docs/api/") {
+			t.Errorf("Result document %s is not in docs/api/", r.DocumentName)
+		}
+	}
+}
+
+func TestSearchWithFilter_FilePatternFilter(t *testing.T) {
+	dbPath := t.TempDir() + "/test.db"
+
+	db, err := Init(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Insert test documents
+	insertTestDocForSearch(t, db, "api-auth.md", "Authentication API", makeTestEmbedding(0.1))
+	insertTestDocForSearch(t, db, "api-users.md", "Users API", makeTestEmbedding(0.2))
+	insertTestDocForSearch(t, db, "guide-setup.md", "Setup guide", makeTestEmbedding(0.3))
+
+	// Search with file pattern filter
+	filter := &SearchFilter{FilePattern: "api-*.md"}
+	results, err := db.SearchWithFilter(makeTestEmbedding(0.1), 10, filter)
+	if err != nil {
+		t.Fatalf("SearchWithFilter failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results with pattern 'api-*.md', got %d", len(results))
+	}
+}
+
+func TestSearchWithFilter_CombinedFilters(t *testing.T) {
+	dbPath := t.TempDir() + "/test.db"
+
+	db, err := Init(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Insert test documents
+	insertTestDocForSearch(t, db, "docs/api-auth.md", "Authentication API", makeTestEmbedding(0.1))
+	insertTestDocForSearch(t, db, "docs/api-users.md", "Users API", makeTestEmbedding(0.2))
+	insertTestDocForSearch(t, db, "docs/guide-setup.md", "Setup guide", makeTestEmbedding(0.3))
+	insertTestDocForSearch(t, db, "other/api-test.md", "Test API", makeTestEmbedding(0.4))
+
+	// Search with both filters
+	filter := &SearchFilter{
+		Directory:   "docs",
+		FilePattern: "api-*.md",
+	}
+	results, err := db.SearchWithFilter(makeTestEmbedding(0.1), 10, filter)
+	if err != nil {
+		t.Fatalf("SearchWithFilter failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results with combined filters, got %d", len(results))
+	}
+
+	// Verify all results match both filters
+	for _, r := range results {
+		if !hasPrefix(r.DocumentName, "docs/") {
+			t.Errorf("Result document %s is not in docs/", r.DocumentName)
+		}
+	}
+}
+
+func TestSearchWithFilter_NoResults(t *testing.T) {
+	dbPath := t.TempDir() + "/test.db"
+
+	db, err := Init(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Insert test documents
+	insertTestDocForSearch(t, db, "docs/auth.md", "Authentication", makeTestEmbedding(0.1))
+
+	// Search with filter that matches nothing
+	filter := &SearchFilter{Directory: "nonexistent"}
+	results, err := db.SearchWithFilter(makeTestEmbedding(0.1), 10, filter)
+	if err != nil {
+		t.Fatalf("SearchWithFilter failed: %v", err)
+	}
+
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results for non-matching filter, got %d", len(results))
+	}
+}
+
+func TestGlobToLike(t *testing.T) {
+	tests := []struct {
+		glob     string
+		expected string
+	}{
+		{"*.md", "%.md"},
+		{"api-*.md", "api-%.md"},
+		{"file?.txt", "file_.txt"},
+		{"test*file?.md", "test%file_.md"},
+		{"file%name", "file\\%name"},          // Escape %
+		{"file_name", "file\\_name"},          // Escape _
+		{"test%*.md", "test\\%%.md"},          // Escape % then convert *
+		{"*", "%"},
+		{"?", "_"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.glob, func(t *testing.T) {
+			result := globToLike(tt.glob)
+			if result != tt.expected {
+				t.Errorf("globToLike(%q) = %q, want %q", tt.glob, result, tt.expected)
+			}
+		})
+	}
+}
+
+// hasPrefix checks if a string has the given prefix (handles both / and \ separators)
+func hasPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
