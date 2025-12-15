@@ -12,7 +12,7 @@ DevRag is a lightweight RAG (Retrieval-Augmented Generation) MCP server for Clau
 | Embedding Model | multilingual-e5-small (384 dimensions) |
 | Vector DB | SQLite + sqlite-vec |
 | Protocol | MCP (Model Context Protocol) via stdio |
-| Current Version | v1.1.0 |
+| Current Version | v1.2.0 |
 
 ## Project Structure
 
