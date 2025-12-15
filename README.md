@@ -171,13 +171,31 @@ This is useful for:
 DevRag provides the following tools via Model Context Protocol:
 
 ### search
-Perform semantic vector search
+Perform semantic vector search with optional filtering
 
 **Parameters:**
-- `query` (string): Search query
+- `query` (string, required): Search query in natural language
+- `top_k` (number, optional): Maximum number of results (default: 5)
+- `directory` (string, optional): Filter to specific directory (e.g., "docs/api")
+- `file_pattern` (string, optional): Glob pattern for filename (e.g., "api-*.md", "*.md")
 
 **Returns:**
 Array of search results with filename, chunk content, and similarity score
+
+**Examples:**
+```
+// Basic search
+search(query: "JWT authentication")
+
+// Search only in docs/api directory
+search(query: "user endpoints", directory: "docs/api")
+
+// Search only files matching pattern
+search(query: "deployment", file_pattern: "guide-*.md")
+
+// Combined filters
+search(query: "authentication", directory: "docs/api", file_pattern: "auth*.md")
+```
 
 ### index_markdown
 Index a markdown file
@@ -369,6 +387,15 @@ MIT License
 
 Issues and Pull Requests are welcome!
 
+## Contributors
+
+Special thanks to all contributors who helped improve DevRag:
+
+- **[@badri](https://github.com/badri)** - Multiple document paths with glob patterns ([#2](https://github.com/tomohiro-owada/devrag/pull/2)), `--config` CLI flag ([#3](https://github.com/tomohiro-owada/devrag/pull/3))
+- **[@io41](https://github.com/io41)** - Project cleanup and documentation improvements ([#4](https://github.com/tomohiro-owada/devrag/pull/4))
+
+Your contributions make DevRag better for everyone!
+
 ## Author
 
 [towada](https://github.com/tomohiro-owada)
@@ -546,13 +573,31 @@ devrag --config /path/to/custom-config.json
 Model Context Protocolを通じて以下のツールを提供：
 
 ### search
-意味ベクトル検索を実行
+フィルター機能付き意味ベクトル検索を実行
 
 **パラメータ:**
-- `query` (string): 検索クエリ
+- `query` (string, 必須): 自然言語の検索クエリ
+- `top_k` (number, 任意): 最大結果数（デフォルト: 5）
+- `directory` (string, 任意): 特定ディレクトリに絞り込み（例: "docs/api"）
+- `file_pattern` (string, 任意): ファイル名のglobパターン（例: "api-*.md", "*.md"）
 
 **戻り値:**
 ファイル名、チャンク内容、類似度スコアを含む検索結果の配列
+
+**使用例:**
+```
+// 基本検索
+search(query: "JWT認証")
+
+// docs/apiディレクトリ内のみ検索
+search(query: "ユーザーエンドポイント", directory: "docs/api")
+
+// パターンに一致するファイルのみ検索
+search(query: "デプロイ", file_pattern: "guide-*.md")
+
+// フィルターの組み合わせ
+search(query: "認証", directory: "docs/api", file_pattern: "auth*.md")
+```
 
 ### index_markdown
 マークダウンファイルをインデックス化
@@ -743,6 +788,15 @@ MIT License
 ## コントリビューション
 
 IssuesとPull Requestsを歓迎します！
+
+## コントリビューター
+
+DevRagの改善に貢献してくださった皆様に感謝します：
+
+- **[@badri](https://github.com/badri)** - 複数ドキュメントパスとglobパターン対応 ([#2](https://github.com/tomohiro-owada/devrag/pull/2))、`--config` CLIフラグ ([#3](https://github.com/tomohiro-owada/devrag/pull/3))
+- **[@io41](https://github.com/io41)** - プロジェクトのクリーンアップとドキュメント改善 ([#4](https://github.com/tomohiro-owada/devrag/pull/4))
+
+皆様の貢献がDevRagをより良くしています！
 
 ## 作者
 
