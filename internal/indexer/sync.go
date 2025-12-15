@@ -3,7 +3,6 @@ package indexer
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 )
 
