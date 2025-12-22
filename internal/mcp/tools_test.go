@@ -429,11 +429,14 @@ func TestHandleDeleteDocument_MissingFilename(t *testing.T) {
 }
 
 func TestHandleDeleteDocument_NotFound(t *testing.T) {
-	server, _ := testHelper(t)
+	server, tmpDir := testHelper(t)
 	ctx := context.Background()
 
+	// Use a path within the valid directory but file doesn't exist in DB
+	filePath := filepath.Join(tmpDir, "docs", "nonexistent.md")
+
 	request := createTestRequest(map[string]interface{}{
-		"filename": "nonexistent.md",
+		"filename": filePath,
 	})
 	result, err := server.handleDeleteDocument(ctx, request)
 
@@ -446,12 +449,31 @@ func TestHandleDeleteDocument_NotFound(t *testing.T) {
 	}
 }
 
-func TestHandleDeleteDocument_Success(t *testing.T) {
+func TestHandleDeleteDocument_InvalidPath(t *testing.T) {
+	server, _ := testHelper(t)
+	ctx := context.Background()
+
+	// Try to delete a file outside the configured directories
+	request := createTestRequest(map[string]interface{}{
+		"filename": "/tmp/outside.md",
+	})
+	result, err := server.handleDeleteDocument(ctx, request)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if !result.IsError {
+		t.Error("Expected error result for invalid path")
+	}
+}
+
+func TestHandleDeleteDocument_Success_DBOnly(t *testing.T) {
 	server, tmpDir := testHelper(t)
 	ctx := context.Background()
 
 	// Create and index a document
-	filePath := createTestMarkdown(t, tmpDir, "docs/todelete.md", "# To Delete\n\nThis will be deleted.")
+	filePath := createTestMarkdown(t, tmpDir, "docs/todelete.md", "# To Delete\n\nThis will be deleted from DB only.")
 	if err := server.indexer.IndexFile(filePath); err != nil {
 		t.Fatalf("Failed to index: %v", err)
 	}
@@ -462,7 +484,7 @@ func TestHandleDeleteDocument_Success(t *testing.T) {
 		t.Fatalf("Expected 1 document before delete, got %d", len(docs))
 	}
 
-	// Delete the document
+	// Delete the document (delete_file defaults to false)
 	request := createTestRequest(map[string]interface{}{
 		"filename": filePath,
 	})
@@ -482,9 +504,52 @@ func TestHandleDeleteDocument_Success(t *testing.T) {
 		t.Errorf("Expected 0 documents after delete, got %d", len(docs))
 	}
 
+	// Verify file still exists on filesystem (delete_file=false)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		t.Error("Expected file to remain on filesystem when delete_file=false")
+	}
+}
+
+func TestHandleDeleteDocument_Success_WithFileDelete(t *testing.T) {
+	server, tmpDir := testHelper(t)
+	ctx := context.Background()
+
+	// Create and index a document
+	filePath := createTestMarkdown(t, tmpDir, "docs/todelete.md", "# To Delete\n\nThis will be fully deleted.")
+	if err := server.indexer.IndexFile(filePath); err != nil {
+		t.Fatalf("Failed to index: %v", err)
+	}
+
+	// Verify document exists
+	docs, _ := server.db.ListDocuments()
+	if len(docs) != 1 {
+		t.Fatalf("Expected 1 document before delete, got %d", len(docs))
+	}
+
+	// Delete the document with delete_file=true
+	request := createTestRequest(map[string]interface{}{
+		"filename":    filePath,
+		"delete_file": true,
+	})
+	result, err := server.handleDeleteDocument(ctx, request)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result.IsError {
+		t.Errorf("Expected success, got error: %v", result)
+	}
+
+	// Verify document is deleted from database
+	docs, _ = server.db.ListDocuments()
+	if len(docs) != 0 {
+		t.Errorf("Expected 0 documents after delete, got %d", len(docs))
+	}
+
 	// Verify file is deleted from filesystem
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
-		t.Error("Expected file to be deleted from filesystem")
+		t.Error("Expected file to be deleted from filesystem when delete_file=true")
 	}
 }
 
