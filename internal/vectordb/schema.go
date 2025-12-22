@@ -23,4 +23,21 @@ CREATE INDEX IF NOT EXISTS idx_document_id ON chunks(document_id);
 CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(
     embedding FLOAT[384]
 );
+
+CREATE TABLE IF NOT EXISTS code_metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chunk_id INTEGER NOT NULL UNIQUE,
+    symbol_name TEXT,
+    symbol_type TEXT NOT NULL,
+    language TEXT NOT NULL,
+    start_line INTEGER,
+    end_line INTEGER,
+    parent_symbol TEXT,
+    signature TEXT,
+    FOREIGN KEY (chunk_id) REFERENCES chunks(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_code_symbol ON code_metadata(symbol_name);
+CREATE INDEX IF NOT EXISTS idx_code_language ON code_metadata(language);
+CREATE INDEX IF NOT EXISTS idx_code_type ON code_metadata(symbol_type);
 `

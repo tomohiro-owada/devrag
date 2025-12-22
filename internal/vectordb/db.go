@@ -151,6 +151,104 @@ func (db *DB) InsertDocument(filename string, modifiedAt time.Time, chunks []Chu
 	return nil
 }
 
+// CodeChunkInterface extends ChunkInterface with code-specific metadata
+type CodeChunkInterface interface {
+	ChunkInterface
+	GetSymbolName() string
+	GetSymbolType() string
+	GetLanguage() string
+	GetStartLine() int
+	GetEndLine() int
+	GetParentSymbol() string
+	GetSignature() string
+}
+
+// InsertCodeDocument inserts or updates a code document with metadata
+func (db *DB) InsertCodeDocument(filename string, modifiedAt time.Time, chunks []CodeChunkInterface, embeddings [][]float32) error {
+	if len(chunks) != len(embeddings) {
+		return fmt.Errorf("chunks count (%d) does not match embeddings count (%d)", len(chunks), len(embeddings))
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(
+		"INSERT OR REPLACE INTO documents (filename, modified_at, indexed_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+		filename, modifiedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert document: %w", err)
+	}
+
+	docID, err := result.LastInsertId()
+	if err != nil {
+		err = tx.QueryRow("SELECT id FROM documents WHERE filename = ?", filename).Scan(&docID)
+		if err != nil {
+			return fmt.Errorf("failed to get document ID: %w", err)
+		}
+	}
+
+	_, err = tx.Exec("DELETE FROM chunks WHERE document_id = ?", docID)
+	if err != nil {
+		return fmt.Errorf("failed to delete old chunks: %w", err)
+	}
+
+	for i, chunk := range chunks {
+		result, err := tx.Exec(
+			"INSERT INTO chunks (document_id, position, content) VALUES (?, ?, ?)",
+			docID, chunk.GetPosition(), chunk.GetContent(),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert chunk %d: %w", i, err)
+		}
+
+		chunkID, err := result.LastInsertId()
+		if err != nil {
+			return fmt.Errorf("failed to get chunk ID for chunk %d: %w", i, err)
+		}
+
+		embedding := embeddings[i]
+		if len(embedding) == 0 {
+			return fmt.Errorf("empty embedding for chunk %d", i)
+		}
+
+		vectorBlob := serializeVector(embedding)
+		_, err = tx.Exec(
+			"INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)",
+			chunkID, vectorBlob,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert vector for chunk %d: %w", i, err)
+		}
+
+		_, err = tx.Exec(
+			`INSERT INTO code_metadata
+			(chunk_id, symbol_name, symbol_type, language, start_line, end_line, parent_symbol, signature)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			chunkID,
+			chunk.GetSymbolName(),
+			chunk.GetSymbolType(),
+			chunk.GetLanguage(),
+			chunk.GetStartLine(),
+			chunk.GetEndLine(),
+			chunk.GetParentSymbol(),
+			chunk.GetSignature(),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert code metadata for chunk %d: %w", i, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 // serializeVector converts a float32 slice to a byte slice for storage
 func serializeVector(vec []float32) []byte {
 	// Convert float32 slice to byte slice

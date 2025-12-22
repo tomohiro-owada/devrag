@@ -9,6 +9,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tomohiro-owada/devrag/internal/frontmatter"
+	"github.com/tomohiro-owada/devrag/internal/indexer"
 	"github.com/tomohiro-owada/devrag/internal/updater"
 	"github.com/tomohiro-owada/devrag/internal/vectordb"
 	"github.com/tomohiro-owada/devrag/internal/version"
@@ -382,6 +383,45 @@ func (s *MCPServer) handleUpdateFrontmatter(ctx context.Context, request mcp.Cal
 	return mcp.NewToolResultJSON(map[string]interface{}{
 		"success": true,
 		"message": "Frontmatter updated successfully",
+	})
+}
+
+// Tool 8: index_code
+func (s *MCPServer) registerIndexCodeTool() {
+	tool := mcp.NewTool(
+		"index_code",
+		mcp.WithDescription("ソースコードファイルをAST解析してインデックス化。Go/Python/TypeScript/JavaScriptに対応。関数・クラス・メソッド単位でチャンク化"),
+		mcp.WithString("filepath",
+			mcp.Required(),
+			mcp.Description("コードファイルのパス（.go, .py, .ts, .tsx, .js, .jsx）"),
+		),
+	)
+
+	s.server.AddTool(tool, s.handleIndexCode)
+}
+
+func (s *MCPServer) handleIndexCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	filePath := request.GetString("filepath", "")
+	if filePath == "" {
+		return mcp.NewToolResultError("filepath is required"), nil
+	}
+
+	if err := validatePath(filePath, s.config.GetBaseDirectories()); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
+	}
+
+	if !indexer.IsCodeFile(filePath) {
+		extensions := indexer.GetSupportedExtensions()
+		return mcp.NewToolResultError(fmt.Sprintf("unsupported file type. Supported: %v", extensions)), nil
+	}
+
+	if err := s.indexer.IndexCodeFile(filePath); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("indexing failed: %v", err)), nil
+	}
+
+	return mcp.NewToolResultJSON(map[string]interface{}{
+		"success": true,
+		"message": "Code file indexed successfully",
 	})
 }
 

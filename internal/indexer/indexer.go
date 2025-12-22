@@ -76,6 +76,58 @@ func (idx *Indexer) IndexFile(filePath string) error {
 	return nil
 }
 
+// IndexCodeFile indexes a single source code file
+func (idx *Indexer) IndexCodeFile(filePath string) error {
+	fmt.Fprintf(os.Stderr, "[INFO] Indexing code file: %s\n", filePath)
+
+	langName, _, ok := DetectLanguage(filePath)
+	if !ok {
+		return fmt.Errorf("unsupported language for file: %s", filePath)
+	}
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	parser := NewCodeParser()
+	chunks, err := parser.ParseCodeFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse code: %w", err)
+	}
+
+	if len(chunks) == 0 {
+		fmt.Fprintf(os.Stderr, "[WARN] No symbols extracted from %s\n", filePath)
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "[INFO] Parsed %d code chunks (%s)\n", len(chunks), langName)
+
+	texts := make([]string, len(chunks))
+	for i, chunk := range chunks {
+		texts[i] = fmt.Sprintf("%s %s: %s", chunk.Language, chunk.SymbolName, chunk.Content)
+	}
+
+	vectors, err := idx.embedder.EmbedBatch(texts)
+	if err != nil {
+		return fmt.Errorf("failed to vectorize: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "[INFO] Generated %d embeddings\n", len(vectors))
+
+	chunkInterfaces := make([]vectordb.CodeChunkInterface, len(chunks))
+	for i := range chunks {
+		chunkInterfaces[i] = chunks[i]
+	}
+
+	if err := idx.db.InsertCodeDocument(filePath, info.ModTime(), chunkInterfaces, vectors); err != nil {
+		return fmt.Errorf("failed to store in database: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "[INFO] Successfully indexed %s (%d chunks)\n", filePath, len(chunks))
+	return nil
+}
+
 // IndexDirectory indexes all markdown files in a directory
 func (idx *Indexer) IndexDirectory(dir string) error {
 	fmt.Fprintf(os.Stderr, "[INFO] Indexing directory: %s\n", dir)
