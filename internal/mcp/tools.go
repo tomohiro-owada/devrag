@@ -156,10 +156,13 @@ func (s *MCPServer) handleListDocuments(ctx context.Context, request mcp.CallToo
 func (s *MCPServer) registerDeleteDocumentTool() {
 	tool := mcp.NewTool(
 		"delete_document",
-		mcp.WithDescription("ドキュメントをDBとファイルシステムの両方から削除"),
+		mcp.WithDescription("ドキュメントをインデックスから削除。delete_file=trueの場合は物理ファイルも削除"),
 		mcp.WithString("filename",
 			mcp.Required(),
 			mcp.Description("削除するファイル名"),
+		),
+		mcp.WithBoolean("delete_file",
+			mcp.Description("物理ファイルも削除するかどうか（デフォルト: false）"),
 		),
 	)
 
@@ -172,19 +175,33 @@ func (s *MCPServer) handleDeleteDocument(ctx context.Context, request mcp.CallTo
 		return mcp.NewToolResultError("filename is required"), nil
 	}
 
+	deleteFile := request.GetBool("delete_file", false)
+
+	// Validate path to prevent path traversal
+	if err := validatePath(filename, s.config.GetBaseDirectories()); err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
+	}
+
 	// Delete from database
 	if err := s.db.DeleteDocument(filename); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete from database: %v", err)), nil
 	}
 
-	// Delete file (filename is the full path)
-	if err := os.Remove(filename); err != nil {
-		fmt.Fprintf(os.Stderr, "[WARN] Failed to delete file: %v\n", err)
+	// Delete physical file only if explicitly requested
+	fileDeleted := false
+	if deleteFile {
+		if err := os.Remove(filename); err != nil {
+			// Log warning but don't fail since DB deletion succeeded
+			fmt.Fprintf(os.Stderr, "[WARN] Failed to delete file: %v\n", err)
+		} else {
+			fileDeleted = true
+		}
 	}
 
 	return mcp.NewToolResultJSON(map[string]interface{}{
-		"success": true,
-		"message": "Document deleted successfully",
+		"success":      true,
+		"message":      "Document deleted successfully",
+		"file_deleted": fileDeleted,
 	})
 }
 
