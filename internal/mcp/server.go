@@ -59,7 +59,6 @@ func (s *MCPServer) registerTools() {
 	s.registerReindexDocumentTool()
 	s.registerAddFrontmatterTool()
 	s.registerUpdateFrontmatterTool()
-	s.registerIndexCodeTool()
 
-	fmt.Fprintf(os.Stderr, "[INFO] Registered 8 MCP tools\n")
+	fmt.Fprintf(os.Stderr, "[INFO] Registered 7 MCP tools\n")
 }

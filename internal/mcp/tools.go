@@ -9,7 +9,6 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tomohiro-owada/devrag/internal/frontmatter"
-	"github.com/tomohiro-owada/devrag/internal/indexer"
 	"github.com/tomohiro-owada/devrag/internal/updater"
 	"github.com/tomohiro-owada/devrag/internal/vectordb"
 	"github.com/tomohiro-owada/devrag/internal/version"
@@ -157,13 +156,10 @@ func (s *MCPServer) handleListDocuments(ctx context.Context, request mcp.CallToo
 func (s *MCPServer) registerDeleteDocumentTool() {
 	tool := mcp.NewTool(
 		"delete_document",
-		mcp.WithDescription("ドキュメントをインデックスから削除。delete_file=trueの場合は物理ファイルも削除"),
+		mcp.WithDescription("ドキュメントをDBとファイルシステムの両方から削除"),
 		mcp.WithString("filename",
 			mcp.Required(),
 			mcp.Description("削除するファイル名"),
-		),
-		mcp.WithBoolean("delete_file",
-			mcp.Description("物理ファイルも削除するかどうか（デフォルト: false）"),
 		),
 	)
 
@@ -176,33 +172,19 @@ func (s *MCPServer) handleDeleteDocument(ctx context.Context, request mcp.CallTo
 		return mcp.NewToolResultError("filename is required"), nil
 	}
 
-	deleteFile := request.GetBool("delete_file", false)
-
-	// Validate path to prevent path traversal
-	if err := validatePath(filename, s.config.GetBaseDirectories()); err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
-	}
-
 	// Delete from database
 	if err := s.db.DeleteDocument(filename); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete from database: %v", err)), nil
 	}
 
-	// Delete physical file only if explicitly requested
-	fileDeleted := false
-	if deleteFile {
-		if err := os.Remove(filename); err != nil {
-			// Log warning but don't fail since DB deletion succeeded
-			fmt.Fprintf(os.Stderr, "[WARN] Failed to delete file: %v\n", err)
-		} else {
-			fileDeleted = true
-		}
+	// Delete file (filename is the full path)
+	if err := os.Remove(filename); err != nil {
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to delete file: %v\n", err)
 	}
 
 	return mcp.NewToolResultJSON(map[string]interface{}{
-		"success":      true,
-		"message":      "Document deleted successfully",
-		"file_deleted": fileDeleted,
+		"success": true,
+		"message": "Document deleted successfully",
 	})
 }
 
@@ -383,45 +365,6 @@ func (s *MCPServer) handleUpdateFrontmatter(ctx context.Context, request mcp.Cal
 	return mcp.NewToolResultJSON(map[string]interface{}{
 		"success": true,
 		"message": "Frontmatter updated successfully",
-	})
-}
-
-// Tool 8: index_code
-func (s *MCPServer) registerIndexCodeTool() {
-	tool := mcp.NewTool(
-		"index_code",
-		mcp.WithDescription("ソースコードファイルをAST解析してインデックス化。Go/Python/TypeScript/JavaScriptに対応。関数・クラス・メソッド単位でチャンク化"),
-		mcp.WithString("filepath",
-			mcp.Required(),
-			mcp.Description("コードファイルのパス（.go, .py, .ts, .tsx, .js, .jsx）"),
-		),
-	)
-
-	s.server.AddTool(tool, s.handleIndexCode)
-}
-
-func (s *MCPServer) handleIndexCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	filePath := request.GetString("filepath", "")
-	if filePath == "" {
-		return mcp.NewToolResultError("filepath is required"), nil
-	}
-
-	if err := validatePath(filePath, s.config.GetBaseDirectories()); err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("invalid path: %v", err)), nil
-	}
-
-	if !indexer.IsCodeFile(filePath) {
-		extensions := indexer.GetSupportedExtensions()
-		return mcp.NewToolResultError(fmt.Sprintf("unsupported file type. Supported: %v", extensions)), nil
-	}
-
-	if err := s.indexer.IndexCodeFile(filePath); err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("indexing failed: %v", err)), nil
-	}
-
-	return mcp.NewToolResultJSON(map[string]interface{}{
-		"success": true,
-		"message": "Code file indexed successfully",
 	})
 }
 

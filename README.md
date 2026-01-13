@@ -36,13 +36,13 @@ When using Claude Code, reading documents with the Read tool consumes massive am
 
 Get the appropriate binary from [Releases](https://github.com/tomohiro-owada/devrag/releases):
 
-| Platform | Download |
-|----------|----------|
-| macOS (Apple Silicon) | [devrag-macos-apple-silicon.tar.gz](https://github.com/tomohiro-owada/devrag/releases/download/v1.3.0/devrag-macos-apple-silicon.tar.gz) |
-| macOS (Intel) | [devrag-macos-intel.tar.gz](https://github.com/tomohiro-owada/devrag/releases/download/v1.3.0/devrag-macos-intel.tar.gz) |
-| Linux (x64) | Coming soon |
-| Linux (ARM64) | Coming soon |
-| Windows (x64) | Coming soon |
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `devrag-macos-apple-silicon.tar.gz` |
+| macOS (Intel) | `devrag-macos-intel.tar.gz` |
+| Linux (x64) | `devrag-linux-x64.tar.gz` |
+| Linux (ARM64) | `devrag-linux-arm64.tar.gz` |
+| Windows (x64) | `devrag-windows-x64.zip` |
 
 **macOS/Linux:**
 ```bash
@@ -438,13 +438,13 @@ Claude Codeでドキュメントを読み込むと、大量のトークンを消
 
 [Releases](https://github.com/tomohiro-owada/devrag/releases)から環境に合ったファイルをダウンロード：
 
-| プラットフォーム | ダウンロード |
-|----------|----------|
-| macOS (Apple Silicon) | [devrag-macos-apple-silicon.tar.gz](https://github.com/tomohiro-owada/devrag/releases/download/v1.3.0/devrag-macos-apple-silicon.tar.gz) |
-| macOS (Intel) | [devrag-macos-intel.tar.gz](https://github.com/tomohiro-owada/devrag/releases/download/v1.3.0/devrag-macos-intel.tar.gz) |
-| Linux (x64) | Coming soon |
-| Linux (ARM64) | Coming soon |
-| Windows (x64) | Coming soon |
+| プラットフォーム | ファイル |
+|----------|------|
+| macOS (Apple Silicon) | `devrag-macos-apple-silicon.tar.gz` |
+| macOS (Intel) | `devrag-macos-intel.tar.gz` |
+| Linux (x64) | `devrag-linux-x64.tar.gz` |
+| Linux (ARM64) | `devrag-linux-arm64.tar.gz` |
+| Windows (x64) | `devrag-windows-x64.zip` |
 
 **macOS/Linux:**
 ```bash
