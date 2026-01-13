@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-13
+
+### Added
+- **Code indexing with AST parsing** - Tree-sitter based source code analysis
+  - Supported languages: Go, Python, TypeScript, JavaScript, PHP, Rust, Vue
+  - Extracts functions, classes, methods as searchable chunks
+  - New MCP tool: `index_code` for indexing source code files/directories
+- **Code relation extraction** - Knowledge graph for code navigation
+  - Extracts call relationships (function calls)
+  - Extracts import relationships (dependencies)
+  - Extracts inheritance relationships (classes)
+  - New MCP tool: `search_relations` to query code relationships
+- **Dictionary feature** - Japanese→English word mapping for multilingual search
+  - Auto-extracts word mappings from `日本語 (English)` patterns in documents
+  - CamelCase splitting for better matching
+  - New MCP tool: `build_dictionary` to build/update dictionary
+  - Auto-builds dictionary when Japanese search has no translations
+
+### Fixed
+- **Relation search query** - Fixed NULL target_chunk_id issue causing 0 results
+- **Code relation extraction** - Fixed to use full file content instead of chunk content
+
+### Changed
+- Total MCP tools increased from 7 to 10
+- Improved search to use dictionary translations for Japanese queries
+
+### Technical Details
+- Added `code_metadata` table for source code symbol information
+- Added `code_relations` table for relationship graph
+- Added `word_mapping` table for multilingual dictionary
+
+## [1.3.0] - 2025-12-22
+
+### Added
+- **Update checker** - Notifies when new version is available
+  - Shows update notification in search results
+  - 24-hour cache to avoid excessive API calls
+
+### Changed
+- **Optional file deletion** - `delete_document` tool now only removes from DB by default
+  - Physical file deletion is optional via parameter
+
 ## [1.2.0] - 2025-12-15
 
 ### Added
