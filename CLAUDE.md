@@ -32,10 +32,14 @@ devrag/
 │   │   ├── tokenizer.go        # BERT tokenizer
 │   │   └── embedder_test.go
 │   ├── indexer/                # Document indexing
-│   │   ├── indexer.go          # IndexFile, IndexDirectory
+│   │   ├── indexer.go          # IndexFile, IndexDirectory, IndexCodeFile
 │   │   ├── markdown.go         # ParseMarkdown, chunk splitting
+│   │   ├── code.go             # CodeParser with Tree-sitter AST
+│   │   ├── chunk.go            # CodeChunk struct with metadata
+│   │   ├── languages.go        # Language-specific Tree-sitter queries
+│   │   ├── relations.go        # RelationExtractor for code relations
 │   │   ├── sync.go             # Differential sync (add/update/delete)
-│   │   └── markdown_test.go
+│   │   └── *_test.go           # Tests
 │   ├── vectordb/               # Vector database operations
 │   │   ├── db.go               # Insert, Delete, ListDocuments
 │   │   ├── sqlite.go           # SQLite + vec0 initialization
@@ -44,7 +48,7 @@ devrag/
 │   │   └── db_test.go
 │   ├── mcp/                    # MCP Protocol server
 │   │   ├── server.go           # MCP server setup
-│   │   └── tools.go            # 5 MCP tools implementation
+│   │   └── tools.go            # 9 MCP tools implementation
 │   └── frontmatter/            # Markdown frontmatter parsing
 │       └── frontmatter.go
 ├── models/                     # ONNX model files (auto-downloaded)
@@ -96,14 +100,16 @@ Search uses `vec_distance_cosine()` for similarity ranking.
 
 ### 5. MCP Server (`internal/mcp/`)
 
-7 tools available:
+9 tools available:
 - `search` - Semantic search with query string and optional filters
-- `index_markdown` - Index a single file
+- `index_markdown` - Index a single markdown file
 - `list_documents` - List all indexed documents
 - `delete_document` - Remove document from index
 - `reindex_document` - Re-index a document
 - `add_frontmatter` - Add metadata to markdown files
 - `update_frontmatter` - Update metadata in markdown files
+- `index_code` - Index source code files using AST analysis (Go, Python, TypeScript, JavaScript)
+- `search_relations` - Search code symbol relationships (calls, imports, inherits)
 
 #### Search Tool Parameters
 
@@ -113,6 +119,27 @@ Search uses `vec_distance_cosine()` for similarity ranking.
 | `top_k` | number | No | Max results (default: 5) |
 | `directory` | string | No | Filter to specific directory (e.g., "docs/api") |
 | `file_pattern` | string | No | Glob pattern for filename (e.g., "api-*.md")
+
+#### Index Code Tool Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filepath` | string | No* | Single file path to index |
+| `directory` | string | No* | Directory to index recursively |
+| `filepaths` | string | No* | Comma-separated list of file paths |
+| `force` | boolean | No | Force re-index regardless of modification time |
+
+*At least one of `filepath`, `directory`, or `filepaths` is required.
+
+Supported languages: Go (.go), Python (.py), TypeScript (.ts, .tsx), JavaScript (.js, .jsx)
+
+#### Search Relations Tool Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `symbol` | string | Yes | Symbol name to search (function, class, etc.) |
+| `relation_type` | string | No | Filter by type: calls, imports, inherits |
+| `direction` | string | No | Search direction: outgoing, incoming, both (default) |
 
 ## Startup Sequence
 

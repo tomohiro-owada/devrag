@@ -8,6 +8,7 @@ require (
 	github.com/asg017/sqlite-vec-go-bindings v0.1.6
 	github.com/mark3labs/mcp-go v0.42.0
 	github.com/mattn/go-sqlite3 v1.14.32
+	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	github.com/sugarme/tokenizer v0.3.0
 	github.com/yalue/onnxruntime_go v1.21.0
 )
