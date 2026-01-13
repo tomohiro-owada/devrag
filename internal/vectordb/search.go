@@ -1,6 +1,7 @@
 package vectordb
 
 import (
+	"database/sql"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -8,10 +9,23 @@ import (
 
 // SearchResult represents a single search result
 type SearchResult struct {
-	DocumentName string  `json:"document"`
-	ChunkContent string  `json:"chunk"`
-	Similarity   float64 `json:"similarity"`
-	Position     int     `json:"position"`
+	DocumentName string              `json:"document"`
+	ChunkContent string              `json:"chunk"`
+	Similarity   float64             `json:"similarity"`
+	Position     int                 `json:"position"`
+	ChunkID      int64               `json:"-"` // Internal use for metadata lookup
+	Metadata     *CodeMetadataResult `json:"metadata,omitempty"`
+}
+
+// CodeMetadataResult holds code metadata for search results
+type CodeMetadataResult struct {
+	SymbolName   string `json:"symbol_name,omitempty"`
+	SymbolType   string `json:"symbol_type,omitempty"`
+	Language     string `json:"language,omitempty"`
+	StartLine    int    `json:"start_line,omitempty"`
+	EndLine      int    `json:"end_line,omitempty"`
+	ParentSymbol string `json:"parent_symbol,omitempty"`
+	Signature    string `json:"signature,omitempty"`
 }
 
 // SearchFilter defines filtering options for search
@@ -56,10 +70,19 @@ func (db *DB) SearchWithFilter(queryVector []float32, topK int, filter *SearchFi
 			d.filename,
 			c.content,
 			c.position,
-			vec_distance_cosine(v.embedding, ?) as distance
+			c.id as chunk_id,
+			vec_distance_cosine(v.embedding, ?) as distance,
+			cm.symbol_name,
+			cm.symbol_type,
+			cm.language,
+			cm.start_line,
+			cm.end_line,
+			cm.parent_symbol,
+			cm.signature
 		FROM vec_chunks v
 		JOIN chunks c ON v.rowid = c.id
 		JOIN documents d ON c.document_id = d.id
+		LEFT JOIN code_metadata cm ON c.id = cm.chunk_id
 	`)
 
 	// Add WHERE clause if filters are specified
@@ -104,8 +127,23 @@ func (db *DB) SearchWithFilter(queryVector []float32, topK int, filter *SearchFi
 	for rows.Next() {
 		var result SearchResult
 		var distance float64
+		var symbolName, symbolType, language, parentSymbol, signature sql.NullString
+		var startLine, endLine sql.NullInt64
 
-		err := rows.Scan(&result.DocumentName, &result.ChunkContent, &result.Position, &distance)
+		err := rows.Scan(
+			&result.DocumentName,
+			&result.ChunkContent,
+			&result.Position,
+			&result.ChunkID,
+			&distance,
+			&symbolName,
+			&symbolType,
+			&language,
+			&startLine,
+			&endLine,
+			&parentSymbol,
+			&signature,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan result row: %w", err)
 		}
@@ -114,6 +152,19 @@ func (db *DB) SearchWithFilter(queryVector []float32, topK int, filter *SearchFi
 		// Cosine distance: 0 = same direction, 2 = opposite direction
 		// Similarity: 1 - (distance/2) gives us a 0-1 range where 1 = identical
 		result.Similarity = 1.0 - (distance / 2.0)
+
+		// Add code metadata if present
+		if symbolType.Valid {
+			result.Metadata = &CodeMetadataResult{
+				SymbolName:   symbolName.String,
+				SymbolType:   symbolType.String,
+				Language:     language.String,
+				StartLine:    int(startLine.Int64),
+				EndLine:      int(endLine.Int64),
+				ParentSymbol: parentSymbol.String,
+				Signature:    signature.String,
+			}
+		}
 
 		results = append(results, result)
 	}
