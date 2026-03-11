@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	ort "github.com/yalue/onnxruntime_go"
 )
@@ -17,9 +18,46 @@ type ONNXEmbedder struct {
 	maxLength  int
 }
 
+// findBundledLibrary looks for the ONNX Runtime shared library bundled next
+// to the executable. Returns empty string if not found.
+func findBundledLibrary() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	exeDir := filepath.Dir(exe)
+
+	// Platform-specific library names
+	var names []string
+	switch runtime.GOOS {
+	case "darwin":
+		names = []string{"libonnxruntime.dylib", "libonnxruntime.1.22.0.dylib"}
+	case "linux":
+		names = []string{"libonnxruntime.so", "libonnxruntime.so.1.22.0"}
+	case "windows":
+		names = []string{"onnxruntime.dll"}
+	}
+
+	for _, name := range names {
+		p := filepath.Join(exeDir, name)
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return ""
+}
+
 // NewONNXEmbedder creates a new ONNX embedder
 func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 	fmt.Fprintf(os.Stderr, "[INFO] Initializing ONNX Runtime (%s)...\n", device)
+
+	// Point ONNX Runtime to the bundled shared library if available.
+	// This is required for CoreML (macOS) and CUDA (Linux) execution providers
+	// which are only present in the official Microsoft releases, not Homebrew.
+	if libPath := findBundledLibrary(); libPath != "" {
+		fmt.Fprintf(os.Stderr, "[INFO] Using bundled ONNX Runtime: %s\n", libPath)
+		ort.SetSharedLibraryPath(libPath)
+	}
 
 	// Initialize ONNX Runtime
 	if err := ort.InitializeEnvironment(); err != nil {

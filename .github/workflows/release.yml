@@ -83,6 +83,22 @@ jobs:
 
           go build -ldflags="-s -w" -o ${{ matrix.binary_name }} cmd/main.go
 
+      - name: Download ONNX Runtime (macOS)
+        if: matrix.goos == 'darwin'
+        run: |
+          ORT_VERSION="1.22.0"
+          ORT_ARCH="${{ matrix.goarch }}"
+          if [ "$ORT_ARCH" = "amd64" ]; then
+            ORT_ARCH="x86_64"
+          fi
+          ORT_URL="https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/onnxruntime-osx-${ORT_ARCH}-${ORT_VERSION}.tgz"
+          echo "Downloading ONNX Runtime from ${ORT_URL}"
+          curl -sL "$ORT_URL" -o /tmp/onnxruntime.tgz
+          tar xzf /tmp/onnxruntime.tgz -C /tmp
+          cp /tmp/onnxruntime-osx-${ORT_ARCH}-${ORT_VERSION}/lib/libonnxruntime.${ORT_VERSION}.dylib ./libonnxruntime.dylib
+          echo "Bundled libonnxruntime.dylib ($(du -h libonnxruntime.dylib | cut -f1))"
+        shell: bash
+
       - name: Build (Unix)
         if: matrix.os != 'windows-latest'
         env:
@@ -99,7 +115,12 @@ jobs:
       - name: Create tarball (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          tar -czf ${{ matrix.binary_name }}.tar.gz ${{ matrix.binary_name }}
+          # Include bundled ONNX Runtime dylib for macOS
+          BUNDLE_FILES="${{ matrix.binary_name }}"
+          if [ -f libonnxruntime.dylib ]; then
+            BUNDLE_FILES="$BUNDLE_FILES libonnxruntime.dylib"
+          fi
+          tar -czf ${{ matrix.binary_name }}.tar.gz $BUNDLE_FILES
           shasum -a 256 ${{ matrix.binary_name }}.tar.gz > ${{ matrix.binary_name }}.tar.gz.sha256
 
       - name: Create zip (Windows)
