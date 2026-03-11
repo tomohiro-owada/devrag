@@ -26,6 +26,7 @@ When using Claude Code, reading documents with the Read tool consumes massive am
 - 📝 **Markdown Support** - Auto-indexes .md files
 - 🔍 **Semantic Search** - Natural language queries like "JWT authentication method"
 - 🚀 **Single Binary** - No Python, models auto-download on first run
+- 💻 **CLI & MCP** - Use as MCP server or standalone CLI commands
 - 🖥️ **Cross-Platform** - macOS / Linux / Windows
 - ⚡ **Fast** - Auto GPU/CPU detection, incremental sync
 - 🌐 **Multilingual** - Supports 100+ languages including Japanese & English
@@ -221,6 +222,76 @@ Re-index a document
 **Parameters:**
 - `filepath` (string): Path to the file to re-index
 
+## CLI Usage
+
+DevRag can also be used as a standalone CLI tool. All MCP tools are available as CLI commands.
+
+```bash
+# Start MCP server (default)
+devrag
+devrag serve
+
+# Search documents
+devrag search "JWT authentication"
+devrag search "deployment" --top-k 10 --directory docs/api
+
+# Index files
+devrag index ./docs/api-spec.md
+devrag index-code --directory ./src
+
+# List indexed documents
+devrag list
+devrag list --fields filename
+
+# Delete / Reindex
+devrag delete ./docs/old-spec.md --dry-run
+devrag reindex ./docs/updated-spec.md
+
+# Code symbol relations
+devrag search-relations handleAuth --type calls
+
+# Build dictionary (Japanese-English mapping)
+devrag build-dictionary
+
+# Show CLI schema (machine-readable)
+devrag schema
+```
+
+### Output Format
+
+All commands output JSON by default. Use `--output text` for human-readable output.
+
+```bash
+# JSON (default, suitable for scripts and AI agents)
+devrag search "authentication"
+
+# Text (human-readable)
+devrag search "authentication" --output text
+```
+
+### MCP Tool Name Compatibility
+
+CLI commands also accept MCP tool names with underscores:
+
+```bash
+devrag index_markdown ./docs/api.md    # same as: devrag index
+devrag list_documents                  # same as: devrag list
+devrag delete_document ./docs/old.md   # same as: devrag delete
+devrag reindex_document ./docs/api.md  # same as: devrag reindex
+```
+
+### Flag Syntax
+
+Flags must be placed **before** positional arguments:
+
+```bash
+# Correct
+devrag delete --dry-run file.md
+
+# Incorrect (--dry-run is ignored)
+devrag delete file.md --dry-run
+```
+
 ## Team Development
 
 Perfect for teams with large documentation repositories:
@@ -310,6 +381,7 @@ devrag/
 ├── cmd/
 │   └── main.go              # Entry point
 ├── internal/
+│   ├── cli/                 # CLI commands
 │   ├── config/              # Configuration
 │   ├── embedder/            # Vector embeddings
 │   ├── indexer/             # Indexing logic
@@ -428,6 +500,7 @@ Claude Codeでドキュメントを読み込むと、大量のトークンを消
 - 📝 **マークダウン対応** - .mdファイルを自動インデックス化
 - 🔍 **意味検索** - 「JWTの認証方法」のような自然言語クエリ
 - 🚀 **ワンバイナリー** - Python不要、モデルは初回起動時に自動ダウンロード
+- 💻 **CLI & MCP** - MCPサーバーとしても、CLIコマンドとしても使える
 - 🖥️ **クロスプラットフォーム** - macOS / Linux / Windows
 - ⚡ **高速** - GPU/CPU自動検出、差分同期
 - 🌐 **多言語** - 日本語・英語を含む100以上の言語対応
@@ -623,6 +696,76 @@ search(query: "認証", directory: "docs/api", file_pattern: "auth*.md")
 **パラメータ:**
 - `filepath` (string): 再インデックス化するファイルのパス
 
+## CLI使用方法
+
+DevRagはスタンドアロンのCLIツールとしても使用できます。すべてのMCPツールがCLIコマンドとして利用可能です。
+
+```bash
+# MCPサーバーを起動（デフォルト）
+devrag
+devrag serve
+
+# ドキュメントを検索
+devrag search "JWT認証"
+devrag search "デプロイ" --top-k 10 --directory docs/api
+
+# ファイルをインデックス化
+devrag index ./docs/api-spec.md
+devrag index-code --directory ./src
+
+# インデックス済みドキュメント一覧
+devrag list
+devrag list --fields filename
+
+# 削除 / 再インデックス
+devrag delete ./docs/old-spec.md --dry-run
+devrag reindex ./docs/updated-spec.md
+
+# コードシンボル関係検索
+devrag search-relations handleAuth --type calls
+
+# 辞書ビルド（日本語→英語マッピング）
+devrag build-dictionary
+
+# CLIスキーマ表示（機械可読）
+devrag schema
+```
+
+### 出力形式
+
+全コマンドはデフォルトでJSONを出力します。`--output text`で人間が読みやすい形式になります。
+
+```bash
+# JSON（デフォルト、スクリプトやAIエージェント向け）
+devrag search "認証"
+
+# テキスト（人間向け）
+devrag search "認証" --output text
+```
+
+### MCPツール名との互換性
+
+CLIコマンドはアンダースコア形式のMCPツール名でも動作します：
+
+```bash
+devrag index_markdown ./docs/api.md    # devrag index と同じ
+devrag list_documents                  # devrag list と同じ
+devrag delete_document ./docs/old.md   # devrag delete と同じ
+devrag reindex_document ./docs/api.md  # devrag reindex と同じ
+```
+
+### フラグの構文
+
+フラグは位置引数の**前**に置く必要があります：
+
+```bash
+# 正しい
+devrag delete --dry-run file.md
+
+# 誤り（--dry-runが無視される）
+devrag delete file.md --dry-run
+```
+
 ## チーム開発
 
 大量のドキュメントがあるチームに最適：
@@ -712,6 +855,7 @@ devrag/
 ├── cmd/
 │   └── main.go              # エントリーポイント
 ├── internal/
+│   ├── cli/                 # CLIコマンド
 │   ├── config/              # 設定管理
 │   ├── embedder/            # ベクトル埋め込み
 │   ├── indexer/             # インデックス処理
