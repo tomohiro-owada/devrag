@@ -70,23 +70,11 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          # Use pre-installed MSYS2
-          MSYS_ROOT="C:/msys64"
-
-          export PATH="$MSYS_ROOT/mingw64/bin:$PATH"
-          export PKG_CONFIG_PATH="$MSYS_ROOT/mingw64/lib/pkgconfig"
-
-          # Use Windows-style paths for CGO
-          export CGO_CFLAGS="-IC:/msys64/mingw64/include"
-          export CGO_LDFLAGS="-LC:/msys64/mingw64/lib"
-
-          # Debug: check if sqlite3.h exists
-          echo "Checking for sqlite3.h..."
-          ls -la C:/msys64/mingw64/include/sqlite3.h || echo "sqlite3.h not found"
-
-          # Debug: show gcc location
-          which gcc
-          gcc --version
+          # Use MSYS2 mingw64 toolchain.
+          # Do NOT set CGO_CFLAGS="-I.../mingw64/include" — it causes
+          # header collisions (MSYS2's parser.h vs tree-sitter's parser.h).
+          # mingw gcc already searches its own sysroot include/lib paths.
+          export PATH="C:/msys64/mingw64/bin:$PATH"
 
           go build -ldflags="-s -w" -o ${{ matrix.binary_name }} cmd/main.go
 
