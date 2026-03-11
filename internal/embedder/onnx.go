@@ -74,10 +74,18 @@ func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 	// Set execution provider based on device
 	if device == GPU {
 		fmt.Fprintf(os.Stderr, "[INFO] GPU execution provider requested\n")
-		// Try to enable CoreML on macOS or CUDA on other platforms
-		// Note: This may fail if the execution provider is not available
-		if err := options.AppendExecutionProviderCoreML(0); err != nil {
-			fmt.Fprintf(os.Stderr, "[WARN] CoreML not available, falling back to CPU: %v\n", err)
+		if runtime.GOOS == "darwin" {
+			// Use the V2 API (recommended since ONNX Runtime 1.20.0) with
+			// explicit options for better CoreML utilization.
+			coreMLOpts := map[string]string{
+				"ModelFormat":    "MLProgram",
+				"MLComputeUnits": "ALL",
+			}
+			if err := options.AppendExecutionProviderCoreMLV2(coreMLOpts); err != nil {
+				fmt.Fprintf(os.Stderr, "[WARN] CoreML not available, falling back to CPU: %v\n", err)
+			} else {
+				fmt.Fprintf(os.Stderr, "[INFO] CoreML execution provider enabled (MLProgram, ALL compute units)\n")
+			}
 		}
 	}
 
