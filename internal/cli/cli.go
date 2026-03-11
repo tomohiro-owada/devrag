@@ -54,26 +54,27 @@ func (c *CLI) Run(args []string) error {
 	cmd := args[0]
 	cmdArgs := args[1:]
 
+	// Accept both CLI-style (hyphen) and MCP tool names (underscore)
 	switch cmd {
 	case "search":
 		return c.runSearch(cmdArgs)
-	case "index":
+	case "index", "index_markdown":
 		return c.runIndex(cmdArgs)
-	case "index-code":
+	case "index-code", "index_code":
 		return c.runIndexCode(cmdArgs)
-	case "list":
+	case "list", "list_documents":
 		return c.runList(cmdArgs)
-	case "delete":
+	case "delete", "delete_document":
 		return c.runDelete(cmdArgs)
-	case "reindex":
+	case "reindex", "reindex_document":
 		return c.runReindex(cmdArgs)
-	case "search-relations":
+	case "search-relations", "search_relations":
 		return c.runSearchRelations(cmdArgs)
-	case "build-dictionary":
+	case "build-dictionary", "build_dictionary":
 		return c.runBuildDictionary(cmdArgs)
-	case "add-frontmatter":
+	case "add-frontmatter", "add_frontmatter":
 		return c.runAddFrontmatter(cmdArgs)
-	case "update-frontmatter":
+	case "update-frontmatter", "update_frontmatter":
 		return c.runUpdateFrontmatter(cmdArgs)
 	case "schema":
 		return c.runSchema(cmdArgs)
@@ -110,11 +111,6 @@ func (c *CLI) runSearch(args []string) error {
 		return err
 	}
 
-	queryVector, err := c.embedder.Embed(query)
-	if err != nil {
-		return outputError("embed_failed", fmt.Sprintf("failed to vectorize query: %v", err), "", "")
-	}
-
 	var filter *vectordb.SearchFilter
 	if *directory != "" || *filePattern != "" {
 		filter = &vectordb.SearchFilter{
@@ -123,15 +119,64 @@ func (c *CLI) runSearch(args []string) error {
 		}
 	}
 
-	results, err := c.db.SearchWithFilter(queryVector, *topK, filter)
+	// Japanese dictionary lookup + keyword search (same as MCP search tool)
+	var keywordResults []vectordb.SearchResult
+	var translatedKeywords []string
+	var dictionaryAutoBuilt bool
+
+	if indexer.IsJapanese(query) {
+		jaWords := extractJapaneseWords(query)
+		for _, word := range jaWords {
+			translations, err := c.db.LookupWordMappings(word, "ja")
+			if err == nil && len(translations) > 0 {
+				translatedKeywords = append(translatedKeywords, translations...)
+			}
+		}
+
+		// Auto-build dictionary if no translations found
+		if len(translatedKeywords) == 0 && len(jaWords) > 0 {
+			extracted := c.autoBuildDictionary("ja")
+			if extracted > 0 {
+				dictionaryAutoBuilt = true
+				for _, word := range jaWords {
+					translations, err := c.db.LookupWordMappings(word, "ja")
+					if err == nil && len(translations) > 0 {
+						translatedKeywords = append(translatedKeywords, translations...)
+					}
+				}
+			}
+		}
+
+		if len(translatedKeywords) > 0 {
+			keywordResults, _ = c.db.SearchSymbolsByKeywords(translatedKeywords, *topK)
+		}
+	}
+
+	// Semantic search
+	queryVector, err := c.embedder.Embed(query)
+	if err != nil {
+		return outputError("embed_failed", fmt.Sprintf("failed to vectorize query: %v", err), "", "")
+	}
+
+	semanticResults, err := c.db.SearchWithFilter(queryVector, *topK, filter)
 	if err != nil {
 		return outputError("search_failed", fmt.Sprintf("search failed: %v", err), "", "")
 	}
+
+	// Merge keyword + semantic results
+	results := mergeSearchResults(keywordResults, semanticResults, *topK)
 
 	data := map[string]interface{}{
 		"query":   query,
 		"count":   len(results),
 		"results": filterFields(resultsToMaps(results), *fields),
+	}
+	if len(translatedKeywords) > 0 {
+		data["dictionary_used"] = true
+		data["translated_keywords"] = translatedKeywords
+	}
+	if dictionaryAutoBuilt {
+		data["dictionary_auto_built"] = true
 	}
 
 	if *outputFmt == "text" {
@@ -631,6 +676,7 @@ func (c *CLI) runSchema(args []string) error {
 		"commands": []map[string]interface{}{
 			{
 				"name":        "search",
+				"mcp_tool":    "search",
 				"description": "Semantic search over indexed documents",
 				"args":        []cmdArg{{Name: "query", Type: "string", Required: true, Description: "Natural language search query"}},
 				"flags": []cmdFlag{
@@ -644,12 +690,16 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "index",
+				"aliases":     []string{"index_markdown"},
+				"mcp_tool":    "index_markdown",
 				"description": "Index a markdown file",
 				"args":        []cmdArg{{Name: "filepath", Type: "string", Required: true, Description: "Path to markdown file"}},
 				"destructive":  false,
 			},
 			{
 				"name":        "index-code",
+				"aliases":     []string{"index_code"},
+				"mcp_tool":    "index_code",
 				"description": "Index source code files using AST analysis",
 				"args":        []cmdArg{{Name: "filepath", Type: "string", Required: false, Description: "Single file to index"}},
 				"flags": []cmdFlag{
@@ -661,6 +711,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "list",
+				"aliases":     []string{"list_documents"},
+				"mcp_tool":    "list_documents",
 				"description": "List all indexed documents",
 				"flags": []cmdFlag{
 					{Name: "fields", Type: "string", Description: "Comma-separated fields to include"},
@@ -670,6 +722,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "delete",
+				"aliases":     []string{"delete_document"},
+				"mcp_tool":    "delete_document",
 				"description": "Remove a document from the index",
 				"args":        []cmdArg{{Name: "filename", Type: "string", Required: true, Description: "Filename to delete"}},
 				"flags": []cmdFlag{
@@ -680,6 +734,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "reindex",
+				"aliases":     []string{"reindex_document"},
+				"mcp_tool":    "reindex_document",
 				"description": "Delete and re-index a document",
 				"args":        []cmdArg{{Name: "filename", Type: "string", Required: true, Description: "Filename to reindex"}},
 				"flags": []cmdFlag{
@@ -689,6 +745,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "search-relations",
+				"aliases":     []string{"search_relations"},
+				"mcp_tool":    "search_relations",
 				"description": "Search code symbol relationships",
 				"args":        []cmdArg{{Name: "symbol", Type: "string", Required: true, Description: "Symbol name to search"}},
 				"flags": []cmdFlag{
@@ -700,6 +758,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "build-dictionary",
+				"aliases":     []string{"build_dictionary"},
+				"mcp_tool":    "build_dictionary",
 				"description": "Build multilingual word mapping dictionary from indexed documents",
 				"flags": []cmdFlag{
 					{Name: "source-lang", Type: "string", Default: "ja", Description: "Source language"},
@@ -709,6 +769,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "add-frontmatter",
+				"aliases":     []string{"add_frontmatter"},
+				"mcp_tool":    "add_frontmatter",
 				"description": "Add metadata (frontmatter) to a markdown file",
 				"args":        []cmdArg{{Name: "filepath", Type: "string", Required: true, Description: "Path to markdown file"}},
 				"flags": []cmdFlag{
@@ -723,6 +785,8 @@ func (c *CLI) runSchema(args []string) error {
 			},
 			{
 				"name":        "update-frontmatter",
+				"aliases":     []string{"update_frontmatter"},
+				"mcp_tool":    "update_frontmatter",
 				"description": "Update metadata (frontmatter) in a markdown file",
 				"args":        []cmdArg{{Name: "filepath", Type: "string", Required: true, Description: "Path to markdown file"}},
 				"flags": []cmdFlag{
@@ -844,6 +908,94 @@ func filterFields(items []map[string]interface{}, fields string) []map[string]in
 		filtered[i] = m
 	}
 	return filtered
+}
+
+// extractJapaneseWords extracts Japanese words from a query string
+func extractJapaneseWords(query string) []string {
+	var words []string
+	var currentWord strings.Builder
+
+	for _, r := range query {
+		if indexer.IsJapanese(string(r)) {
+			currentWord.WriteRune(r)
+		} else {
+			if currentWord.Len() > 0 {
+				word := currentWord.String()
+				if len(word) >= 2 {
+					words = append(words, word)
+				}
+				currentWord.Reset()
+			}
+		}
+	}
+
+	if currentWord.Len() > 0 {
+		word := currentWord.String()
+		if len(word) >= 2 {
+			words = append(words, word)
+		}
+	}
+
+	return words
+}
+
+// mergeSearchResults merges keyword and semantic results, removing duplicates
+func mergeSearchResults(keyword, semantic []vectordb.SearchResult, limit int) []vectordb.SearchResult {
+	seen := make(map[string]bool)
+	var results []vectordb.SearchResult
+
+	for _, r := range keyword {
+		key := fmt.Sprintf("%s:%d", r.DocumentName, r.Position)
+		if !seen[key] {
+			seen[key] = true
+			results = append(results, r)
+		}
+	}
+
+	for _, r := range semantic {
+		key := fmt.Sprintf("%s:%d", r.DocumentName, r.Position)
+		if !seen[key] {
+			seen[key] = true
+			results = append(results, r)
+		}
+	}
+
+	if len(results) > limit {
+		results = results[:limit]
+	}
+
+	return results
+}
+
+// autoBuildDictionary builds dictionary from indexed documents
+func (c *CLI) autoBuildDictionary(sourceLang string) int {
+	extractor := indexer.NewDictionaryExtractor()
+	var allMappings []vectordb.WordMapping
+
+	docs, err := c.db.ListDocuments()
+	if err != nil {
+		return 0
+	}
+
+	for docPath := range docs {
+		content, err := os.ReadFile(docPath)
+		if err != nil {
+			continue
+		}
+		lang := indexer.DetectLanguage(string(content))
+		if lang == "mixed" || lang == sourceLang {
+			mappings := extractor.ExtractFromContent(string(content), docPath, sourceLang)
+			allMappings = append(allMappings, mappings...)
+		}
+	}
+
+	if len(allMappings) > 0 {
+		if err := c.db.InsertWordMappings(allMappings); err != nil {
+			return 0
+		}
+	}
+
+	return len(allMappings)
 }
 
 func resultsToMaps(results []vectordb.SearchResult) []map[string]interface{} {
