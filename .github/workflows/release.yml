@@ -70,11 +70,16 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          # Use MSYS2 mingw64 toolchain.
-          # Do NOT set CGO_CFLAGS="-I.../mingw64/include" — it causes
-          # header collisions (MSYS2's parser.h vs tree-sitter's parser.h).
-          # mingw gcc already searches its own sysroot include/lib paths.
           export PATH="C:/msys64/mingw64/bin:$PATH"
+
+          # Copy only sqlite3 headers to a dedicated directory to avoid
+          # header collisions (MSYS2's parser.h vs tree-sitter's parser.h).
+          mkdir -p _cgo_includes
+          cp C:/msys64/mingw64/include/sqlite3.h _cgo_includes/
+          cp C:/msys64/mingw64/include/sqlite3ext.h _cgo_includes/ 2>/dev/null || true
+
+          export CGO_CFLAGS="-I$(pwd)/_cgo_includes"
+          export CGO_LDFLAGS="-LC:/msys64/mingw64/lib"
 
           go build -ldflags="-s -w" -o ${{ matrix.binary_name }} cmd/main.go
 
