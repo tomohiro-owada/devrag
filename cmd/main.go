@@ -1,10 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
+	"github.com/tomohiro-owada/devrag/internal/cli"
 	"github.com/tomohiro-owada/devrag/internal/config"
 	"github.com/tomohiro-owada/devrag/internal/embedder"
 	"github.com/tomohiro-owada/devrag/internal/indexer"
@@ -15,39 +15,60 @@ import (
 )
 
 func main() {
-	// Parse command-line flags
-	configPath := flag.String("config", "config.json", "path to configuration file")
-	showVersion := flag.Bool("version", false, "show version and exit")
-	flag.Parse()
+	// Extract global flags before subcommand
+	configPath := "config.json"
+	args := os.Args[1:]
 
-	if *showVersion {
-		fmt.Printf("devrag version %s\n", version.Version)
-		os.Exit(0)
+	// Parse global flags manually (before subcommand)
+	var filteredArgs []string
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--version", "-version":
+			fmt.Printf("devrag version %s\n", version.Version)
+			os.Exit(0)
+		case "--config", "-config":
+			if i+1 < len(args) {
+				configPath = args[i+1]
+				i++ // skip next arg
+			} else {
+				fmt.Fprintf(os.Stderr, "[FATAL] --config requires a path argument\n")
+				os.Exit(1)
+			}
+		default:
+			filteredArgs = append(filteredArgs, args[i])
+		}
 	}
 
-	fmt.Fprintf(os.Stderr, "[INFO] DevRag v%s starting...\n", version.Version)
+	// Determine mode: MCP server (default/serve) or CLI subcommand
+	isMCP := len(filteredArgs) == 0 || filteredArgs[0] == "serve"
+
+	if isMCP {
+		fmt.Fprintf(os.Stderr, "[INFO] DevRag v%s starting (MCP mode)...\n", version.Version)
+	} else {
+		fmt.Fprintf(os.Stderr, "[INFO] DevRag v%s\n", version.Version)
+	}
 
 	// Check for updates (synchronous, shown immediately after startup message)
 	updater.CheckForUpdate(version.Version, "")
 
 	// 1. Load configuration
-	cfg, err := config.Load(*configPath)
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Validate configuration
 	if err := cfg.Validate(); err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Invalid configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Fprintf(os.Stderr, "[INFO] Configuration loaded successfully\n")
-	fmt.Fprintf(os.Stderr, "[INFO] Document patterns: %v\n", cfg.DocumentPatterns)
-	fmt.Fprintf(os.Stderr, "[INFO] Database path: %s\n", cfg.DBPath)
-	fmt.Fprintf(os.Stderr, "[INFO] Model: %s (dimensions: %d)\n", cfg.Model.Name, cfg.Model.Dimensions)
-	fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
+	if isMCP {
+		fmt.Fprintf(os.Stderr, "[INFO] Configuration loaded successfully\n")
+		fmt.Fprintf(os.Stderr, "[INFO] Document patterns: %v\n", cfg.DocumentPatterns)
+		fmt.Fprintf(os.Stderr, "[INFO] Database path: %s\n", cfg.DBPath)
+		fmt.Fprintf(os.Stderr, "[INFO] Model: %s (dimensions: %d)\n", cfg.Model.Name, cfg.Model.Dimensions)
+		fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
+	}
 
 	// 2. Download model files if needed
 	modelDir := "models"
@@ -58,11 +79,11 @@ func main() {
 
 	// 3. Detect device
 	device := embedder.DetectDevice(cfg.Compute.Device, cfg.Compute.FallbackToCPU)
-	fmt.Fprintf(os.Stderr, "[INFO] Using device: %s\n", device)
+	if isMCP {
+		fmt.Fprintf(os.Stderr, "[INFO] Using device: %s\n", device)
+	}
 
 	// 4. Initialize components
-
-	// Ensure base directories exist
 	baseDirs := cfg.GetBaseDirectories()
 	for _, dir := range baseDirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -70,7 +91,6 @@ func main() {
 		}
 	}
 
-	// Initialize database
 	db, err := vectordb.Init(cfg.DBPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Failed to initialize database: %v\n", err)
@@ -78,9 +98,6 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize embedder
-	// Note: Model file is required for production use
-	// For testing purposes, we'll use mock embedder if model is not available
 	var emb embedder.Embedder
 	modelPath := "models/multilingual-e5-small/model.onnx"
 	if _, err := os.Stat(modelPath); err == nil {
@@ -90,32 +107,41 @@ func main() {
 			os.Exit(1)
 		}
 		defer emb.Close()
-		fmt.Fprintf(os.Stderr, "[INFO] Loaded ONNX model from %s\n", modelPath)
+		if isMCP {
+			fmt.Fprintf(os.Stderr, "[INFO] Loaded ONNX model from %s\n", modelPath)
+		}
 	} else {
 		fmt.Fprintf(os.Stderr, "[WARN] Model not found at %s, using mock embedder\n", modelPath)
 		emb = &embedder.MockEmbedder{}
 	}
 
-	// Initialize indexer
 	idx := indexer.NewIndexer(db, emb, cfg)
 
-	// 4. Sync documents
-	fmt.Fprintf(os.Stderr, "[INFO] Syncing documents...\n")
-	syncResult, err := idx.Sync()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[WARN] Sync error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "[INFO] Sync complete: +%d, ~%d, -%d\n",
-			len(syncResult.Added),
-			len(syncResult.Updated),
-			len(syncResult.Deleted))
-	}
+	// 5. Sync documents (MCP mode does full sync; CLI skips for speed)
+	if isMCP {
+		fmt.Fprintf(os.Stderr, "[INFO] Syncing documents...\n")
+		syncResult, err := idx.Sync()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[WARN] Sync error: %v\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "[INFO] Sync complete: +%d, ~%d, -%d\n",
+				len(syncResult.Added),
+				len(syncResult.Updated),
+				len(syncResult.Deleted))
+		}
 
-	// 5. Start MCP server
-	fmt.Fprintf(os.Stderr, "[INFO] Starting MCP server...\n")
-	server := mcp.NewMCPServer(idx, db, emb, cfg)
-	if err := server.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "[FATAL] MCP server error: %v\n", err)
-		os.Exit(1)
+		// 6. Start MCP server
+		fmt.Fprintf(os.Stderr, "[INFO] Starting MCP server...\n")
+		server := mcp.NewMCPServer(idx, db, emb, cfg)
+		if err := server.Start(); err != nil {
+			fmt.Fprintf(os.Stderr, "[FATAL] MCP server error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		// CLI mode
+		c := cli.New(db, emb, idx, cfg)
+		if err := c.Run(filteredArgs); err != nil {
+			os.Exit(1)
+		}
 	}
 }

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-03-11
+
+### Added
+- **CLI subcommand interface** - All MCP tools now available as CLI commands
+  - `devrag search`, `index`, `index-code`, `list`, `delete`, `reindex`, `search-relations`, `build-dictionary`, `add-frontmatter`, `update-frontmatter`
+  - `devrag serve` or no subcommand starts MCP server (backwards compatible)
+- **Agent-first CLI design** following AI CLI design guidelines
+  - JSON output by default on all commands (`--output text` for human-readable)
+  - Stable response envelope: `{status, data, error}` on every command
+  - Structured errors with `{code, message, field, hint}`
+  - `devrag schema` returns full CLI specification as machine-readable JSON
+  - `--fields` flag to limit output fields (token efficiency)
+  - `--dry-run` on destructive operations (`delete`, `reindex`)
+  - `--params` JSON payload input for complex operations (frontmatter)
+  - Input hardening: path traversal rejection, control character validation
+  - Flag syntax documented in schema for AI agent consumption
+
 ## [1.2.2] - 2026-03-11
 
 ### Fixed
