@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-03-11
+
+### Fixed
+- **FATAL panic in tokenizer** - Added `recover()` to catch panics from upstream `sugarme/tokenizer` v0.3.0 bug (#15)
+  - Consecutive whitespace and certain text patterns caused `slice bounds out of range` panic in Metaspace pretokenizer
+  - Affected ONNX embedder only (mock embedder was not affected)
+- **Batch embedding resilience** - `EmbedBatch` no longer fails the entire batch when individual chunks cause tokenizer errors
+  - Failed chunks now use zero-vector fallback instead of aborting the whole indexing process
+  - Warnings logged to stderr for visibility
+
 ## [1.4.0] - 2026-01-13
 
 ### Added

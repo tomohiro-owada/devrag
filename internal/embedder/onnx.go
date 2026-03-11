@@ -88,10 +88,20 @@ func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 }
 
 // Embed embeds a single text
-func (e *ONNXEmbedder) Embed(text string) ([]float32, error) {
+func (e *ONNXEmbedder) Embed(text string) (embedding []float32, err error) {
 	// Add query prefix for e5 models (improves search quality)
 	// For documents, no prefix is needed
 	// text = "query: " + text
+
+	// Recover from panics in the upstream tokenizer library.
+	// sugarme/tokenizer v0.3.0 has known bugs with consecutive whitespace
+	// and certain text patterns (see upstream issues #77, #78).
+	defer func() {
+		if r := recover(); r != nil {
+			embedding = nil
+			err = fmt.Errorf("tokenizer panic (upstream bug): %v", r)
+		}
+	}()
 
 	// Tokenize the text
 	inputIDs32, attentionMask32, err := e.tokenizer.TokenizeWithAttentionMask(text)
@@ -169,7 +179,7 @@ func (e *ONNXEmbedder) Embed(text string) ([]float32, error) {
 	// The output shape is [batch_size, seq_length, hidden_size]
 	// We need to perform mean pooling over the sequence dimension
 	// with attention mask to get a single vector per text
-	embedding := meanPooling(outputFloat32, attentionMask, seqLength, e.outputDim)
+	embedding = meanPooling(outputFloat32, attentionMask, seqLength, e.outputDim)
 
 	// Normalize the embedding (L2 normalization)
 	embedding = normalize(embedding)
@@ -177,7 +187,9 @@ func (e *ONNXEmbedder) Embed(text string) ([]float32, error) {
 	return embedding, nil
 }
 
-// EmbedBatch embeds multiple texts
+// EmbedBatch embeds multiple texts.
+// If individual texts fail (e.g. due to upstream tokenizer bugs), a zero vector
+// is used as a fallback and a warning is logged. The batch as a whole does not fail.
 func (e *ONNXEmbedder) EmbedBatch(texts []string) ([][]float32, error) {
 	if len(texts) == 0 {
 		return [][]float32{}, nil
@@ -186,12 +198,21 @@ func (e *ONNXEmbedder) EmbedBatch(texts []string) ([][]float32, error) {
 	// For now, process one by one
 	// TODO: Implement true batch processing with padding
 	results := make([][]float32, len(texts))
+	skipped := 0
 	for i, text := range texts {
 		embedding, err := e.Embed(text)
 		if err != nil {
-			return nil, fmt.Errorf("failed to embed text %d: %w", i, err)
+			fmt.Fprintf(os.Stderr, "[WARN] Skipping chunk %d due to embedding error: %v\n", i, err)
+			// Use zero vector as fallback so the chunk is still stored
+			results[i] = make([]float32, e.outputDim)
+			skipped++
+			continue
 		}
 		results[i] = embedding
+	}
+
+	if skipped > 0 {
+		fmt.Fprintf(os.Stderr, "[WARN] %d/%d chunks used fallback zero vectors due to tokenizer errors\n", skipped, len(texts))
 	}
 
 	return results, nil
