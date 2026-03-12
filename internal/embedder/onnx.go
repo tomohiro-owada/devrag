@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 
 	ort "github.com/yalue/onnxruntime_go"
 )
@@ -89,11 +90,18 @@ func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 		}
 	}
 
-	// Configure session options for better performance
-	if err := options.SetIntraOpNumThreads(4); err != nil {
+	// Configure CPU thread count. Override with DEVRAG_THREADS env var.
+	numThreads := 4
+	if t := os.Getenv("DEVRAG_THREADS"); t != "" {
+		if n, err := strconv.Atoi(t); err == nil && n > 0 {
+			numThreads = n
+		}
+	}
+	fmt.Fprintf(os.Stderr, "[INFO] CPU threads: %d (set DEVRAG_THREADS to override)\n", numThreads)
+	if err := options.SetIntraOpNumThreads(numThreads); err != nil {
 		fmt.Fprintf(os.Stderr, "[WARN] Failed to set intra-op threads: %v\n", err)
 	}
-	if err := options.SetInterOpNumThreads(4); err != nil {
+	if err := options.SetInterOpNumThreads(numThreads); err != nil {
 		fmt.Fprintf(os.Stderr, "[WARN] Failed to set inter-op threads: %v\n", err)
 	}
 

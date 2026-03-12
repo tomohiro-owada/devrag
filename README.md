@@ -49,8 +49,10 @@ Get the appropriate binary from [Releases](https://github.com/tomohiro-owada/dev
 ```bash
 tar -xzf devrag-*.tar.gz
 chmod +x devrag-*
-sudo mv devrag-* /usr/local/bin/devrag
+sudo mv devrag-* /usr/local/bin/
 ```
+
+> **Note**: macOS releases include `libonnxruntime.dylib` for CoreML GPU acceleration. Keep it in the same directory as the `devrag` binary.
 
 **Windows:**
 - Extract the zip file
@@ -408,10 +410,19 @@ devrag/
 3. Manual download (see `models/DOWNLOAD.md`)
 4. Retry (incomplete files are auto-removed)
 
-### GPU Not Detected
+### GPU / CoreML Not Working
 
-Explicitly set CPU in `config.json`:
+On macOS, DevRag uses Apple CoreML for GPU/Neural Engine acceleration. Requirements:
+- `libonnxruntime.dylib` must be in the same directory as the `devrag` binary
+- macOS releases from GitHub include this file automatically
 
+If CoreML is not available, DevRag falls back to CPU automatically. To tune performance:
+```bash
+# Adjust CPU thread count (default: 4)
+DEVRAG_THREADS=4 devrag
+```
+
+To explicitly force CPU mode:
 ```json
 {
   "compute": {
@@ -523,8 +534,10 @@ Claude Codeでドキュメントを読み込むと、大量のトークンを消
 ```bash
 tar -xzf devrag-*.tar.gz
 chmod +x devrag-*
-sudo mv devrag-* /usr/local/bin/devrag
+sudo mv devrag-* /usr/local/bin/
 ```
+
+> **注意**: macOS版リリースにはCoreML GPU高速化用の`libonnxruntime.dylib`が含まれています。`devrag`バイナリと同じディレクトリに配置してください。
 
 **Windows:**
 - zipファイルを解凍
@@ -882,10 +895,19 @@ devrag/
 3. 手動ダウンロード（`models/DOWNLOAD.md`参照）
 4. 再試行（不完全なファイルは自動削除）
 
-### GPUが検出されない
+### GPU / CoreMLが動作しない
 
-`config.json`で明示的にCPUを指定：
+macOSではApple CoreMLによるGPU/Neural Engine高速化を使用します。条件：
+- `libonnxruntime.dylib`が`devrag`バイナリと同じディレクトリにあること
+- GitHubのmacOS版リリースにはこのファイルが含まれています
 
+CoreMLが利用できない場合は自動的にCPUにフォールバックします。パフォーマンス調整：
+```bash
+# CPUスレッド数の変更（デフォルト: 4）
+DEVRAG_THREADS=4 devrag
+```
+
+明示的にCPUモードを指定する場合：
 ```json
 {
   "compute": {

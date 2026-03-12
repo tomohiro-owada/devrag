@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-03-12
+
+### Added
+- **CoreML GPU acceleration on macOS** - Bundles official ONNX Runtime with CoreML support
+  - ~6x faster indexing on Apple Silicon (M1/M2/M3/M4) compared to CPU-only
+  - Uses CoreML V2 API with MLProgram format and all compute units (CPU + GPU + Neural Engine)
+  - Automatic detection: bundled `libonnxruntime.dylib` next to binary is loaded at startup
+  - `DEVRAG_THREADS` environment variable to tune CPU thread count (default: 4)
+
+### Fixed
+- **Silent CPU fallback** - Previously claimed GPU but always ran on CPU
+  - Homebrew's onnxruntime lacks CoreML symbols; now bundles Microsoft's official release
+  - Switched from deprecated `AppendExecutionProviderCoreML` to `AppendExecutionProviderCoreMLV2`
+
 ## [1.3.0] - 2026-03-11
 
 ### Added
