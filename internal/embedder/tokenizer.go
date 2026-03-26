@@ -11,19 +11,30 @@ import (
 	"github.com/sugarme/tokenizer/pretrained"
 )
 
-// SanitizeForTokenizer replaces or removes Unicode character sequences that are
-// known to trigger panics in sugarme/tokenizer v0.3.0. The tokenizer has bugs
-// with multi-byte Unicode sequences at chunk boundaries (upstream issues #77, #78).
+// SanitizeForTokenizer normalizes text to avoid panics in sugarme/tokenizer
+// v0.3.0. The tokenizer's sentencepiece precompiled normalizer has bugs:
 //
-// Affected character blocks include:
-//   - Box Drawing (U+2500–U+257F)
-//   - Block Elements (U+2580–U+259F)
-//   - Geometric Shapes (U+25A0–U+25FF)
-//   - Certain emoji + CJK combinations at token boundaries
+//  1. Long whitespace runs (4+ consecutive spaces) trigger an off-by-one error
+//     in byte-offset tracking, causing slice bounds panics. This is the primary
+//     crash trigger (confirmed by user experiments on #18).
+//  2. Certain Unicode character blocks cause similar slice-boundary issues.
+//
+// This function collapses runs of 4+ spaces into a single space and replaces
+// known problematic Unicode characters with spaces.
 func SanitizeForTokenizer(text string) string {
 	var b strings.Builder
 	b.Grow(len(text))
+	spaceCount := 0
 	for _, r := range text {
+		if r == ' ' {
+			spaceCount++
+			if spaceCount <= 3 {
+				b.WriteRune(' ')
+			}
+			// Drop spaces beyond 3 consecutive
+			continue
+		}
+		spaceCount = 0
 		if isProblematicRune(r) {
 			b.WriteRune(' ')
 		} else {

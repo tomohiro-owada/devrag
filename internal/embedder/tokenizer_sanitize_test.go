@@ -195,8 +195,118 @@ func TestSanitizeForTokenizer_LargeInput(t *testing.T) {
 		t.Error("Result should not be empty for non-empty input")
 	}
 
-	// Length should be same (replacement is 1:1 with spaces)
-	if len([]rune(result)) != len([]rune(input)) {
-		t.Errorf("Rune count changed: input=%d, result=%d", len([]rune(input)), len([]rune(result)))
+	// Content should be preserved (just box-drawing replaced with spaces)
+	if !strings.Contains(result, "日本語テキスト") {
+		t.Error("Japanese text should be preserved")
+	}
+}
+
+func TestSanitizeForTokenizer_ConsecutiveSpaces(t *testing.T) {
+	// Issue #18 follow-up: consecutive spaces (4+) trigger the real
+	// sentencepiece normalizer bug in sugarme/tokenizer v0.3.0
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			"4 spaces collapsed to 3",
+			"a    b",
+			"a   b",
+		},
+		{
+			"8 spaces collapsed to 3",
+			"a        b",
+			"a   b",
+		},
+		{
+			"Deep indentation (48 spaces)",
+			"                                                code",
+			"   code",
+		},
+		{
+			"3 spaces preserved",
+			"a   b",
+			"a   b",
+		},
+		{
+			"2 spaces preserved",
+			"a  b",
+			"a  b",
+		},
+		{
+			"1 space preserved",
+			"a b",
+			"a b",
+		},
+		{
+			"Multiple groups of spaces",
+			"a    b      c  d",
+			"a   b   c  d",
+		},
+		{
+			"Indented code block",
+			"func main() {\n        fmt.Println()\n}",
+			"func main() {\n   fmt.Println()\n}",
+		},
+		{
+			"Tabs are not affected",
+			"a\t\t\t\tb",
+			"a\t\t\t\tb",
+		},
+		{
+			"Mixed tabs and spaces",
+			"a\t    b",
+			"a\t   b",
+		},
+		{
+			"Only spaces",
+			"          ",
+			"   ",
+		},
+		{
+			"Spaces at start and end",
+			"      hello      ",
+			"   hello   ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SanitizeForTokenizer(tt.input)
+			if result != tt.expected {
+				t.Errorf("SanitizeForTokenizer(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSanitizeForTokenizer_FlowchartIndentation(t *testing.T) {
+	// Simulates the exact pattern from the user's reproduction case:
+	// deeply nested flowchart-style text with 4-space indentation
+	input := "Start\n" +
+		"    Step 1\n" +
+		"        Step 1.1\n" +
+		"            Step 1.1.1\n" +
+		"                Step 1.1.1.1\n" +
+		"                    Step 1.1.1.1.1\n" +
+		"                        Step 1.1.1.1.1.1\n" +
+		"                            Step 1.1.1.1.1.1.1\n" +
+		"                                Step 1.1.1.1.1.1.1.1\n" +
+		"                                    Step 1.1.1.1.1.1.1.1.1\n" +
+		"                                        Step 1.1.1.1.1.1.1.1.1.1\n"
+
+	result := SanitizeForTokenizer(input)
+
+	// Should not contain 4+ consecutive spaces
+	if strings.Contains(result, "    ") {
+		t.Error("Result should not contain 4+ consecutive spaces")
+	}
+
+	// Should preserve all step labels
+	for _, step := range []string{"Start", "Step 1.1.1.1.1.1.1.1.1.1"} {
+		if !strings.Contains(result, step) {
+			t.Errorf("Should preserve %q", step)
+		}
 	}
 }
