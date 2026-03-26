@@ -6,9 +6,15 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"time"
 
 	ort "github.com/yalue/onnxruntime_go"
 )
+
+// CoreMLTimeout is the maximum time to wait for CoreML model compilation
+// during session creation. CoreML may need to compile the model for GPU/ANE
+// on first run, which can hang indefinitely on some configurations.
+var CoreMLTimeout = 60 * time.Second
 
 type ONNXEmbedder struct {
 	session    *ort.DynamicAdvancedSession
@@ -73,19 +79,22 @@ func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 	defer options.Destroy()
 
 	// Set execution provider based on device
+	usedCoreML := false
 	if device == GPU {
 		fmt.Fprintf(os.Stderr, "[INFO] GPU execution provider requested\n")
 		if runtime.GOOS == "darwin" {
-			// Use the V2 API (recommended since ONNX Runtime 1.20.0) with
-			// explicit options for better CoreML utilization.
+			// Use the V2 API (recommended since ONNX Runtime 1.20.0).
+			// Use CPU_AND_GPU instead of ALL to avoid Neural Engine
+			// compilation hangs on some Apple Silicon configurations.
 			coreMLOpts := map[string]string{
 				"ModelFormat":    "MLProgram",
-				"MLComputeUnits": "ALL",
+				"MLComputeUnits": "CPU_AND_GPU",
 			}
 			if err := options.AppendExecutionProviderCoreMLV2(coreMLOpts); err != nil {
 				fmt.Fprintf(os.Stderr, "[WARN] CoreML not available, falling back to CPU: %v\n", err)
 			} else {
-				fmt.Fprintf(os.Stderr, "[INFO] CoreML execution provider enabled (MLProgram, ALL compute units)\n")
+				usedCoreML = true
+				fmt.Fprintf(os.Stderr, "[INFO] CoreML execution provider enabled (MLProgram, CPU_AND_GPU)\n")
 			}
 		}
 	}
@@ -105,14 +114,38 @@ func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 		fmt.Fprintf(os.Stderr, "[WARN] Failed to set inter-op threads: %v\n", err)
 	}
 
-	// Load model
-	// For multilingual-e5-small, the inputs are: input_ids, attention_mask, token_type_ids
-	// Output is: last_hidden_state
-	session, err := ort.NewDynamicAdvancedSession(modelPath,
-		[]string{"input_ids", "attention_mask", "token_type_ids"},
-		[]string{"last_hidden_state"},
-		options)
-	if err != nil {
+	// Load model with timeout protection.
+	// CoreML model compilation can hang indefinitely on some configurations,
+	// so we run session creation in a goroutine with a timeout.
+	inputNames := []string{"input_ids", "attention_mask", "token_type_ids"}
+	outputNames := []string{"last_hidden_state"}
+
+	session, err := createSessionWithTimeout(modelPath, inputNames, outputNames, options, usedCoreML)
+	if err != nil && usedCoreML {
+		// CoreML failed or timed out — retry with CPU only
+		fmt.Fprintf(os.Stderr, "[WARN] CoreML session failed (%v), retrying with CPU only...\n", err)
+		options.Destroy()
+
+		options, err = ort.NewSessionOptions()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create session options: %w", err)
+		}
+		defer options.Destroy()
+
+		if err := options.SetIntraOpNumThreads(numThreads); err != nil {
+			fmt.Fprintf(os.Stderr, "[WARN] Failed to set intra-op threads: %v\n", err)
+		}
+		if err := options.SetInterOpNumThreads(numThreads); err != nil {
+			fmt.Fprintf(os.Stderr, "[WARN] Failed to set inter-op threads: %v\n", err)
+		}
+
+		session, err = createSessionWithTimeout(modelPath, inputNames, outputNames, options, false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load model (CPU fallback): %w", err)
+		}
+		device = CPU
+		fmt.Fprintf(os.Stderr, "[INFO] Successfully fell back to CPU\n")
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to load model: %w", err)
 	}
 
@@ -148,8 +181,10 @@ func (e *ONNXEmbedder) Embed(text string) (embedding []float32, err error) {
 	// text = "query: " + text
 
 	// Recover from panics in the upstream tokenizer library.
-	// sugarme/tokenizer v0.3.0 has known bugs with consecutive whitespace
-	// and certain text patterns (see upstream issues #77, #78).
+	// sugarme/tokenizer v0.3.0 has known bugs with multi-byte Unicode
+	// sequences at chunk boundaries (see upstream issues #77, #78).
+	// The tokenizer methods already sanitize and recover, but we keep
+	// this outer recovery as defense-in-depth.
 	defer func() {
 		if r := recover(); r != nil {
 			embedding = nil
@@ -157,7 +192,7 @@ func (e *ONNXEmbedder) Embed(text string) (embedding []float32, err error) {
 		}
 	}()
 
-	// Tokenize the text
+	// Tokenize the text (sanitization happens inside TokenizeWithAttentionMask)
 	inputIDs32, attentionMask32, err := e.tokenizer.TokenizeWithAttentionMask(text)
 	if err != nil {
 		return nil, fmt.Errorf("tokenization failed: %w", err)
@@ -329,6 +364,35 @@ func sqrt(x float64) float64 {
 		z = (z + x/z) / 2
 	}
 	return z
+}
+
+// sessionResult holds the result of an async session creation
+type sessionResult struct {
+	session *ort.DynamicAdvancedSession
+	err     error
+}
+
+// createSessionWithTimeout creates an ONNX session with a timeout.
+// When CoreML is involved, model compilation can hang indefinitely.
+func createSessionWithTimeout(modelPath string, inputNames, outputNames []string, options *ort.SessionOptions, withCoreML bool) (*ort.DynamicAdvancedSession, error) {
+	timeout := CoreMLTimeout
+	if !withCoreML {
+		// CPU-only sessions are fast; use a shorter timeout
+		timeout = 30 * time.Second
+	}
+
+	ch := make(chan sessionResult, 1)
+	go func() {
+		session, err := ort.NewDynamicAdvancedSession(modelPath, inputNames, outputNames, options)
+		ch <- sessionResult{session, err}
+	}()
+
+	select {
+	case result := <-ch:
+		return result.session, result.err
+	case <-time.After(timeout):
+		return nil, fmt.Errorf("session creation timed out after %v (CoreML model compilation may be hanging)", timeout)
+	}
 }
 
 // Close closes the embedder and releases resources

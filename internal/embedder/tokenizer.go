@@ -4,10 +4,60 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"unicode"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/pretrained"
 )
+
+// SanitizeForTokenizer replaces or removes Unicode character sequences that are
+// known to trigger panics in sugarme/tokenizer v0.3.0. The tokenizer has bugs
+// with multi-byte Unicode sequences at chunk boundaries (upstream issues #77, #78).
+//
+// Affected character blocks include:
+//   - Box Drawing (U+2500–U+257F)
+//   - Block Elements (U+2580–U+259F)
+//   - Geometric Shapes (U+25A0–U+25FF)
+//   - Certain emoji + CJK combinations at token boundaries
+func SanitizeForTokenizer(text string) string {
+	var b strings.Builder
+	b.Grow(len(text))
+	for _, r := range text {
+		if isProblematicRune(r) {
+			b.WriteRune(' ')
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// isProblematicRune returns true for Unicode runes known to cause slice-bounds
+// panics in sugarme/tokenizer v0.3.0.
+func isProblematicRune(r rune) bool {
+	// Box Drawing (U+2500–U+257F)
+	if r >= 0x2500 && r <= 0x257F {
+		return true
+	}
+	// Block Elements (U+2580–U+259F)
+	if r >= 0x2580 && r <= 0x259F {
+		return true
+	}
+	// Geometric Shapes (U+25A0–U+25FF)
+	if r >= 0x25A0 && r <= 0x25FF {
+		return true
+	}
+	// Braille Patterns (U+2800–U+28FF) — sometimes used in terminal art
+	if r >= 0x2800 && r <= 0x28FF {
+		return true
+	}
+	// Replacement character and non-characters
+	if r == unicode.ReplacementChar {
+		return true
+	}
+	return false
+}
 
 // Tokenizer wraps the HuggingFace tokenizer for text tokenization
 type Tokenizer struct {
@@ -90,7 +140,16 @@ func NewTokenizerFromModelDir(modelDir string) (*Tokenizer, error) {
 }
 
 // Tokenize converts text to token IDs
-func (t *Tokenizer) Tokenize(text string) ([]int32, error) {
+func (t *Tokenizer) Tokenize(text string) (result []int32, err error) {
+	text = SanitizeForTokenizer(text)
+
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			err = fmt.Errorf("tokenizer panic: %v", r)
+		}
+	}()
+
 	// Encode the text
 	encoding, err := t.tk.EncodeSingle(text, true)
 	if err != nil {
@@ -99,7 +158,7 @@ func (t *Tokenizer) Tokenize(text string) ([]int32, error) {
 
 	// Get token IDs
 	ids := encoding.GetIds()
-	result := make([]int32, len(ids))
+	result = make([]int32, len(ids))
 	for i, id := range ids {
 		result[i] = int32(id)
 	}
@@ -108,11 +167,18 @@ func (t *Tokenizer) Tokenize(text string) ([]int32, error) {
 }
 
 // TokenizeBatch converts multiple texts to token IDs
-func (t *Tokenizer) TokenizeBatch(texts []string) ([][]int32, error) {
+func (t *Tokenizer) TokenizeBatch(texts []string) (result [][]int32, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			err = fmt.Errorf("tokenizer panic in batch: %v", r)
+		}
+	}()
+
 	// Convert to EncodeInput slice
 	inputs := make([]tokenizer.EncodeInput, len(texts))
 	for i, text := range texts {
-		inputs[i] = tokenizer.NewSingleEncodeInput(tokenizer.NewInputSequence(text))
+		inputs[i] = tokenizer.NewSingleEncodeInput(tokenizer.NewInputSequence(SanitizeForTokenizer(text)))
 	}
 
 	// Encode batch
@@ -122,7 +188,7 @@ func (t *Tokenizer) TokenizeBatch(texts []string) ([][]int32, error) {
 	}
 
 	// Convert to [][]int32
-	result := make([][]int32, len(encodings))
+	result = make([][]int32, len(encodings))
 	for i, enc := range encodings {
 		ids := enc.GetIds()
 		result[i] = make([]int32, len(ids))
@@ -135,22 +201,33 @@ func (t *Tokenizer) TokenizeBatch(texts []string) ([][]int32, error) {
 }
 
 // TokenizeWithAttentionMask tokenizes text and returns token IDs and attention mask
-func (t *Tokenizer) TokenizeWithAttentionMask(text string) ([]int32, []int32, error) {
-	encoding, err := t.tk.EncodeSingle(text, true)
+func (t *Tokenizer) TokenizeWithAttentionMask(text string) (tokenIDs []int32, mask []int32, err error) {
+	text = SanitizeForTokenizer(text)
+
+	defer func() {
+		if r := recover(); r != nil {
+			tokenIDs = nil
+			mask = nil
+			err = fmt.Errorf("tokenizer panic: %v", r)
+		}
+	}()
+
+	var encoding *tokenizer.Encoding
+	encoding, err = t.tk.EncodeSingle(text, true)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to encode text: %w", err)
 	}
 
 	// Get token IDs
 	ids := encoding.GetIds()
-	tokenIDs := make([]int32, len(ids))
+	tokenIDs = make([]int32, len(ids))
 	for i, id := range ids {
 		tokenIDs[i] = int32(id)
 	}
 
 	// Get attention mask
 	attentionMask := encoding.GetAttentionMask()
-	mask := make([]int32, len(attentionMask))
+	mask = make([]int32, len(attentionMask))
 	for i, m := range attentionMask {
 		mask[i] = int32(m)
 	}
@@ -159,11 +236,19 @@ func (t *Tokenizer) TokenizeWithAttentionMask(text string) ([]int32, []int32, er
 }
 
 // TokenizeBatchWithAttentionMask tokenizes multiple texts with attention masks
-func (t *Tokenizer) TokenizeBatchWithAttentionMask(texts []string) ([][]int32, [][]int32, error) {
+func (t *Tokenizer) TokenizeBatchWithAttentionMask(texts []string) (tokenIDs [][]int32, attentionMasks [][]int32, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			tokenIDs = nil
+			attentionMasks = nil
+			err = fmt.Errorf("tokenizer panic in batch: %v", r)
+		}
+	}()
+
 	// Convert to EncodeInput slice
 	inputs := make([]tokenizer.EncodeInput, len(texts))
 	for i, text := range texts {
-		inputs[i] = tokenizer.NewSingleEncodeInput(tokenizer.NewInputSequence(text))
+		inputs[i] = tokenizer.NewSingleEncodeInput(tokenizer.NewInputSequence(SanitizeForTokenizer(text)))
 	}
 
 	encodings, err := t.tk.EncodeBatch(inputs, true)
@@ -171,8 +256,8 @@ func (t *Tokenizer) TokenizeBatchWithAttentionMask(texts []string) ([][]int32, [
 		return nil, nil, fmt.Errorf("failed to encode batch: %w", err)
 	}
 
-	tokenIDs := make([][]int32, len(encodings))
-	attentionMasks := make([][]int32, len(encodings))
+	tokenIDs = make([][]int32, len(encodings))
+	attentionMasks = make([][]int32, len(encodings))
 
 	for i, enc := range encodings {
 		// Token IDs
