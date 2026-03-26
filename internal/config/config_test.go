@@ -569,6 +569,101 @@ func TestGetBaseDirectories(t *testing.T) {
 	}
 }
 
+func TestDefaultModelDir(t *testing.T) {
+	dir := DefaultModelDir()
+	if dir == "" {
+		t.Error("DefaultModelDir should not return empty string")
+	}
+	// On macOS, should contain "devrag/models"
+	if !containsMiddle(dir, "devrag") {
+		t.Errorf("DefaultModelDir should contain 'devrag', got %s", dir)
+	}
+	if !containsMiddle(dir, "models") {
+		t.Errorf("DefaultModelDir should contain 'models', got %s", dir)
+	}
+}
+
+func TestResolveModelDir_CLIFlag(t *testing.T) {
+	// CLI flag takes highest precedence
+	cfg := &Config{ModelDir: "/config/path"}
+	t.Setenv("DEVRAG_MODEL_DIR", "/env/path")
+
+	result := ResolveModelDir("/cli/path", cfg)
+	if result != "/cli/path" {
+		t.Errorf("CLI flag should take precedence, got %s", result)
+	}
+}
+
+func TestResolveModelDir_EnvVar(t *testing.T) {
+	// Env var takes second precedence
+	cfg := &Config{ModelDir: "/config/path"}
+	t.Setenv("DEVRAG_MODEL_DIR", "/env/path")
+
+	result := ResolveModelDir("", cfg)
+	if result != "/env/path" {
+		t.Errorf("Env var should take precedence over config, got %s", result)
+	}
+}
+
+func TestResolveModelDir_ConfigFile(t *testing.T) {
+	// Config file takes third precedence
+	cfg := &Config{ModelDir: "/config/path"}
+	t.Setenv("DEVRAG_MODEL_DIR", "")
+
+	result := ResolveModelDir("", cfg)
+	if result != "/config/path" {
+		t.Errorf("Config file should be used when no CLI or env, got %s", result)
+	}
+}
+
+func TestResolveModelDir_Default(t *testing.T) {
+	// Falls back to OS default
+	cfg := &Config{}
+	t.Setenv("DEVRAG_MODEL_DIR", "")
+
+	result := ResolveModelDir("", cfg)
+	expected := DefaultModelDir()
+	if result != expected {
+		t.Errorf("Should fall back to DefaultModelDir(), got %s, want %s", result, expected)
+	}
+}
+
+func TestResolveModelDir_NilConfig(t *testing.T) {
+	t.Setenv("DEVRAG_MODEL_DIR", "")
+
+	result := ResolveModelDir("", nil)
+	expected := DefaultModelDir()
+	if result != expected {
+		t.Errorf("Should handle nil config, got %s, want %s", result, expected)
+	}
+}
+
+func TestLoadConfig_WithModelDir(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	testConfig := `{
+  "document_patterns": ["./docs"],
+  "db_path": "./test.db",
+  "chunk_size": 500,
+  "search_top_k": 5,
+  "model_dir": "/custom/model/cache"
+}`
+
+	configPath := filepath.Join(tmpDir, "config.json")
+	if err := os.WriteFile(configPath, []byte(testConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.ModelDir != "/custom/model/cache" {
+		t.Errorf("Expected model_dir '/custom/model/cache', got %s", cfg.ModelDir)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[len(s)-len(substr):] == substr || s[:len(substr)] == substr || containsMiddle(s, substr)))
 }

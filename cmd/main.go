@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/tomohiro-owada/devrag/internal/cli"
 	"github.com/tomohiro-owada/devrag/internal/config"
@@ -17,6 +18,7 @@ import (
 func main() {
 	// Extract global flags before subcommand
 	configPath := "config.json"
+	cliModelDir := ""
 	args := os.Args[1:]
 
 	// Parse global flags manually (before subcommand)
@@ -32,6 +34,14 @@ func main() {
 				i++ // skip next arg
 			} else {
 				fmt.Fprintf(os.Stderr, "[FATAL] --config requires a path argument\n")
+				os.Exit(1)
+			}
+		case "--model-dir":
+			if i+1 < len(args) {
+				cliModelDir = args[i+1]
+				i++ // skip next arg
+			} else {
+				fmt.Fprintf(os.Stderr, "[FATAL] --model-dir requires a path argument\n")
 				os.Exit(1)
 			}
 		default:
@@ -70,8 +80,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
 	}
 
-	// 2. Download model files if needed
-	modelDir := "models"
+	// 2. Resolve model directory and download model files if needed
+	modelCacheDir := config.ResolveModelDir(cliModelDir, cfg)
+	modelDir := filepath.Join(modelCacheDir, "multilingual-e5-small")
+	fmt.Fprintf(os.Stderr, "[INFO] Model directory: %s\n", modelDir)
 	if err := embedder.DownloadModelFiles(modelDir); err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Failed to download model files: %v\n", err)
 		os.Exit(1)
@@ -99,7 +111,7 @@ func main() {
 	defer db.Close()
 
 	var emb embedder.Embedder
-	modelPath := "models/multilingual-e5-small/model.onnx"
+	modelPath := filepath.Join(modelDir, "model.onnx")
 	if _, err := os.Stat(modelPath); err == nil {
 		emb, err = embedder.NewONNXEmbedder(modelPath, device)
 		if err != nil {

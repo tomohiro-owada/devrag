@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ type Config struct {
 	DBPath           string   `json:"db_path"`
 	ChunkSize        int      `json:"chunk_size"`
 	SearchTopK       int      `json:"search_top_k"`
+	ModelDir         string   `json:"model_dir,omitempty"`
 	UpdateCheck      *bool    `json:"update_check,omitempty"`
 	Compute          struct {
 		Device        string `json:"device"`
@@ -301,6 +303,62 @@ func (c *Config) matchesSuffix(path, baseDir, suffix string) bool {
 	}
 
 	return matched && filepath.Ext(path) == ".md"
+}
+
+// DefaultModelDir returns the OS-appropriate default model cache directory.
+//   - macOS: ~/Library/Application Support/devrag/models
+//   - Linux: $XDG_DATA_HOME/devrag/models (fallback ~/.local/share/devrag/models)
+//   - Windows: %LOCALAPPDATA%\devrag\models
+//
+// Returns "./models" if the home directory cannot be determined.
+func DefaultModelDir() string {
+	switch runtime.GOOS {
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "models"
+		}
+		return filepath.Join(home, "Library", "Application Support", "devrag", "models")
+	case "linux":
+		if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
+			return filepath.Join(xdg, "devrag", "models")
+		}
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "models"
+		}
+		return filepath.Join(home, ".local", "share", "devrag", "models")
+	case "windows":
+		if local := os.Getenv("LOCALAPPDATA"); local != "" {
+			return filepath.Join(local, "devrag", "models")
+		}
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "models"
+		}
+		return filepath.Join(home, "AppData", "Local", "devrag", "models")
+	default:
+		return "models"
+	}
+}
+
+// ResolveModelDir determines the model directory to use.
+// Precedence (highest to lowest):
+//  1. cliModelDir (--model-dir flag)
+//  2. DEVRAG_MODEL_DIR environment variable
+//  3. Config file model_dir field
+//  4. OS-appropriate default (DefaultModelDir)
+func ResolveModelDir(cliModelDir string, cfg *Config) string {
+	if cliModelDir != "" {
+		return cliModelDir
+	}
+	if envDir := os.Getenv("DEVRAG_MODEL_DIR"); envDir != "" {
+		return envDir
+	}
+	if cfg != nil && cfg.ModelDir != "" {
+		return cfg.ModelDir
+	}
+	return DefaultModelDir()
 }
 
 // GetBaseDirectories returns the base directories from all patterns
