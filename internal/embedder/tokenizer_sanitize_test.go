@@ -281,6 +281,56 @@ func TestSanitizeForTokenizer_ConsecutiveSpaces(t *testing.T) {
 	}
 }
 
+func TestSanitizeForTokenizer_BoxDrawingBetweenSpaces(t *testing.T) {
+	// Issue #18 (v1.4.1 follow-up by @hrkzogw): Box Drawing characters between
+	// spaces get replaced with spaces but spaceCount was reset, allowing long
+	// consecutive space runs to slip through.
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			"spaces-boxdrawing-spaces",
+			"   ───   ",
+			"   ",
+		},
+		{
+			"box drawing run exceeding threshold",
+			"──────────",
+			"   ",
+		},
+		{
+			"space box space box space pattern",
+			" ─ ─ ─ ─ ─ ",
+			"   ",
+		},
+		{
+			"text around box drawing with spaces",
+			"abc   ───   def",
+			"abc   def",
+		},
+		{
+			"mixed box drawing and block elements between spaces",
+			"a  ─░█  b",
+			"a   b",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SanitizeForTokenizer(tt.input)
+			if result != tt.expected {
+				t.Errorf("SanitizeForTokenizer(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+			// Verify no 4+ consecutive spaces
+			if strings.Contains(result, "    ") {
+				t.Errorf("Result contains 4+ consecutive spaces: %q", result)
+			}
+		})
+	}
+}
+
 func TestSanitizeForTokenizer_FlowchartIndentation(t *testing.T) {
 	// Simulates the exact pattern from the user's reproduction case:
 	// deeply nested flowchart-style text with 4-space indentation

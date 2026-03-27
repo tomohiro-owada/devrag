@@ -26,20 +26,15 @@ func SanitizeForTokenizer(text string) string {
 	b.Grow(len(text))
 	spaceCount := 0
 	for _, r := range text {
-		if r == ' ' {
+		if r == ' ' || isProblematicRune(r) {
 			spaceCount++
 			if spaceCount <= 3 {
 				b.WriteRune(' ')
 			}
-			// Drop spaces beyond 3 consecutive
 			continue
 		}
 		spaceCount = 0
-		if isProblematicRune(r) {
-			b.WriteRune(' ')
-		} else {
-			b.WriteRune(r)
-		}
+		b.WriteRune(r)
 	}
 	return b.String()
 }
