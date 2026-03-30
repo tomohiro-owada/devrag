@@ -31,6 +31,10 @@ When using Claude Code, reading documents with the Read tool consumes massive am
 - ⚡ **Fast** - Auto GPU/CPU detection, incremental sync
 - 🌐 **Multilingual** - Supports 100+ languages including Japanese & English
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/tomohiro-owada-devrag).
+
 ## Quick Start
 
 ### 1. Download Binary
