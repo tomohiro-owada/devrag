@@ -15,6 +15,10 @@ import (
 	"github.com/tomohiro-owada/devrag/internal/version"
 )
 
+func shouldCheckForUpdates(isMCP bool, cfg *config.Config) bool {
+	return !isMCP && cfg != nil && cfg.IsUpdateCheckEnabled()
+}
+
 func main() {
 	// Extract global flags before subcommand
 	configPath := "config.json"
@@ -58,9 +62,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "[INFO] DevRag v%s\n", version.Version)
 	}
 
-	// Check for updates (synchronous, shown immediately after startup message)
-	updater.CheckForUpdate(version.Version, "")
-
 	// 1. Load configuration
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -70,6 +71,12 @@ func main() {
 	if err := cfg.Validate(); err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Invalid configuration: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Avoid blocking MCP stdio initialization on a network request.
+	// CLI mode can still perform the synchronous update notice.
+	if shouldCheckForUpdates(isMCP, cfg) {
+		updater.CheckForUpdate(version.Version, "")
 	}
 
 	if isMCP {

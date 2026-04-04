@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Planned Features
+- Additional language model support
+- Batch indexing improvements
+- Enhanced error messages
+- Configuration validation tool
+- Performance monitoring and metrics
+
+## [1.4.3] - 2026-04-05
+
+### Fixed
+- **MCP startup handshake regression** - MCP mode no longer performs the synchronous GitHub update check before stdio initialization
+  - Prevents startup-time network requests from delaying or interfering with MCP `initialize`
+  - `update_check: false` is now respected before any update check is considered
+
+### Notes
+- Addresses the macOS Apple Silicon MCP startup report tracked in issue #19
+
 ## [1.3.1] - 2026-03-12
 
 ### Added
@@ -198,15 +217,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-compilation with CGO requires platform-specific toolchains
 - GPU support currently limited to macOS Apple Silicon (Metal)
 - First run requires internet connection to download model files (~450MB)
-
-## [Unreleased]
-
-### Planned Features
-- Additional language model support
-- Batch indexing improvements
-- Enhanced error messages
-- Configuration validation tool
-- Performance monitoring and metrics
 
 ---
 
