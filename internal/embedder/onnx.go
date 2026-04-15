@@ -84,11 +84,11 @@ func NewONNXEmbedder(modelPath string, device Device) (*ONNXEmbedder, error) {
 		fmt.Fprintf(os.Stderr, "[INFO] GPU execution provider requested\n")
 		if runtime.GOOS == "darwin" {
 			// Use the V2 API (recommended since ONNX Runtime 1.20.0).
-			// Use CPU_AND_GPU instead of ALL to avoid Neural Engine
+			// Use CPUAndGPU instead of All to avoid Neural Engine
 			// compilation hangs on some Apple Silicon configurations.
 			coreMLOpts := map[string]string{
 				"ModelFormat":    "MLProgram",
-				"MLComputeUnits": "CPU_AND_GPU",
+				"MLComputeUnits": "CPUAndGPU",
 			}
 			if err := options.AppendExecutionProviderCoreMLV2(coreMLOpts); err != nil {
 				fmt.Fprintf(os.Stderr, "[WARN] CoreML not available, falling back to CPU: %v\n", err)

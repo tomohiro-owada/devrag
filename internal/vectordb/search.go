@@ -126,7 +126,7 @@ func (db *DB) SearchWithFilter(queryVector []float32, topK int, filter *SearchFi
 	results := make([]SearchResult, 0, topK)
 	for rows.Next() {
 		var result SearchResult
-		var distance float64
+		var distance sql.NullFloat64
 		var symbolName, symbolType, language, parentSymbol, signature sql.NullString
 		var startLine, endLine sql.NullInt64
 
@@ -148,10 +148,17 @@ func (db *DB) SearchWithFilter(queryVector []float32, topK int, filter *SearchFi
 			return nil, fmt.Errorf("failed to scan result row: %w", err)
 		}
 
+		// Skip chunks with NULL distance — this happens when the stored embedding
+		// is a zero vector (fallback when tokenization failed during indexing).
+		// Cosine similarity is undefined for zero vectors, so sqlite-vec returns NULL.
+		if !distance.Valid {
+			continue
+		}
+
 		// Convert distance to similarity score
 		// Cosine distance: 0 = same direction, 2 = opposite direction
 		// Similarity: 1 - (distance/2) gives us a 0-1 range where 1 = identical
-		result.Similarity = 1.0 - (distance / 2.0)
+		result.Similarity = 1.0 - (distance.Float64 / 2.0)
 
 		// Add code metadata if present
 		if symbolType.Valid {
